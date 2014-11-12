@@ -294,7 +294,8 @@ void Solver::insertCompressed(ItemTreeNode& itree, ItemTreeNode::SubsetNode* con
 				
 				mpz_class counts;
 				removeExtToOldParent(itree, i, counts);
-				node->increaseCounter(counts);
+				found->increaseCounter(counts);
+				//node->increaseCounter(counts);
 				//node->refreshCount();
 				//std::cout << "increase " << counts;	
 				//update flag
