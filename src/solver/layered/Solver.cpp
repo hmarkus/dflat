@@ -529,9 +529,7 @@ void Solver::calculateExtendedPointers()
 			{
 				for (const auto &t : ext)
 				{
-					::Solver* slv = findDecompNode(t.first);
-					assert(slv);
-
+					assert(findDecompNode(t.first));
 					t.second->addExtPointer(&itree, decomposition.getNode().getGlobalId());
 				}
 			}
