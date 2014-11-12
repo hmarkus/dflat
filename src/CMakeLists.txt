@@ -85,6 +85,7 @@ add_library(dflat-objects
 	solver/asp/Solver.cpp
 	solver/asp/ClaspCallback.cpp
 	solver/asp/GringoOutputProcessor.cpp
+	solver/layered/Solver.cpp
 	solver/lazy_asp/Solver.cpp
 	solver/lazy_asp/ClaspCallback.cpp
 	solver/lazy_asp/GringoOutputProcessor.cpp

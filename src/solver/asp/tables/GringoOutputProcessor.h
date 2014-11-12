@@ -45,6 +45,11 @@ public:
 	};
 	typedef AtomInfo<AuxItemAtomArguments> AuxItemAtomInfo;
 
+	struct OptItemAtomArguments {
+		std::string item;
+	};
+	typedef AtomInfo<OptItemAtomArguments> OptItemAtomInfo;
+
 	struct CurrentCostAtomArguments {
 		long currentCost;
 	};
@@ -57,6 +62,7 @@ public:
 
 	typedef std::vector<ItemAtomInfo>        ItemAtomInfos;
 	typedef std::vector<AuxItemAtomInfo>     AuxItemAtomInfos;
+	typedef std::vector<OptItemAtomInfo>     OptItemAtomInfos;
 	typedef std::vector<ExtendAtomInfo>      ExtendAtomInfos;
 	typedef std::vector<CurrentCostAtomInfo> CurrentCostAtomInfos;
 	typedef std::vector<CostAtomInfo>        CostAtomInfos;
@@ -65,6 +71,7 @@ public:
 
 	const ItemAtomInfos&           getItemAtomInfos()           const;
 	const AuxItemAtomInfos&        getAuxItemAtomInfos()        const;
+	const OptItemAtomInfos&        getOptItemAtomInfos()        const;
 	const ExtendAtomInfos&         getExtendAtomInfos()         const;
 	const CurrentCostAtomInfos&    getCurrentCostAtomInfos()    const;
 	const CostAtomInfos&           getCostAtomInfos()           const;
@@ -74,6 +81,7 @@ protected:
 
 	ItemAtomInfos           itemAtomInfos;
 	AuxItemAtomInfos        auxItemAtomInfos;
+	OptItemAtomInfos        optItemAtomInfos;
 	ExtendAtomInfos         extendAtomInfos;
 	CurrentCostAtomInfos    currentCostAtomInfos;
 	CostAtomInfos           costAtomInfos;

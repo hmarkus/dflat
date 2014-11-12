@@ -39,6 +39,11 @@ bool ClaspCallback::onModel(const Clasp::Solver& s, const Clasp::Model& m)
 	forEachTrue(m, itemAtomInfos, [&items](const GringoOutputProcessor::ItemAtomArguments& arguments) {
 			items.insert(arguments.item);
 	});
+	ItemTreeNode::Items optItems;
+	forEachTrue(m, optItemAtomInfos, [&optItems](const GringoOutputProcessor::OptItemAtomArguments& arguments) {
+			optItems.insert(arguments.item);
+	});
+
 	ItemTreeNode::Items auxItems;
 	forEachTrue(m, auxItemAtomInfos, [&auxItems](const GringoOutputProcessor::AuxItemAtomArguments& arguments) {
 			auxItems.insert(arguments.item);
@@ -67,7 +72,7 @@ bool ClaspCallback::onModel(const Clasp::Solver& s, const Clasp::Model& m)
 	}
 	// }}}
 	// Create item tree node {{{
-	std::shared_ptr<ItemTreeNode> node(new ItemTreeNode(std::move(items), std::move(auxItems), {std::move(extendedRows)}, rowType));
+	std::shared_ptr<ItemTreeNode> node(new ItemTreeNode(std::move(items), std::move(auxItems), {std::move(extendedRows)}, rowType, std::move(optItems)));
 	// }}}
 	// Set cost {{{
 	ASP_CHECK(countTrue(m, costAtomInfos) <= 1, "More than one true cost/1 atom");
@@ -97,6 +102,8 @@ bool ClaspCallback::onModel(const Clasp::Solver& s, const Clasp::Model& m)
 
 void ClaspCallback::prepare(const Clasp::SymbolTable& symTab)
 {
+	for(const auto& atom : gringoOutput.getOptItemAtomInfos())
+		optItemAtomInfos.emplace_back(OptItemAtomInfo(atom, symTab));
 	for(const auto& atom : gringoOutput.getItemAtomInfos())
 		itemAtomInfos.emplace_back(ItemAtomInfo(atom, symTab));
 	for(const auto& atom : gringoOutput.getAuxItemAtomInfos())

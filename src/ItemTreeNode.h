@@ -27,6 +27,9 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <string>
 #include <gmpxx.h>
+#include <unordered_map>
+#include <iostream>
+//#include "SubsetNode.h"
 
 class ExtensionIterator;
 
@@ -34,13 +37,72 @@ class ExtensionIterator;
 // require changing other classes like ItemTreePtrComparator (and
 // solver::asp::trees::UncompressedItemTreePtrComparator).
 
+/*template <class T, class D>
+class shared_ptrex : public std::shared_ptr<T>
+{
+	public:
+
+		inline D getData() const { return m_subset; }
+		inline void setData(const D s) { m_subset = s; }
+
+		inline shared_ptrex(const std::shared_ptr<T> &i) : std::shared_ptr<T>(i), m_subset(0) { }
+		inline shared_ptrex(const std::weak_ptr<T> &i) : std::shared_ptr<T>(i), m_subset(0) { }
+		inline shared_ptrex(T* element) : std::shared_ptr<T>(element), m_subset(0) { }
+
+		inline shared_ptrex() : shared_ptrex<T, D>(nullptr) { }
+
+		inline virtual ~shared_ptrex() { this->reset(); }
+
+		inline void operator=(const shared_ptrex<T, D>& other) { std::shared_ptr<T>::operator=(other); m_subset = other.m_subset; }
+		inline void operator=(const shared_ptrex<T, D>&& other) { std::shared_ptr<T>::operator=(other); m_subset = other.m_subset; }
+
+		inline void operator=(const std::shared_ptr<T>& other) { std::shared_ptr<T>::operator=(other); m_subset = 0; }
+		inline void operator=(const std::shared_ptr<T>&& other) { std::shared_ptr<T>::operator=(other); m_subset = 0; }
+
+		inline void operator=(const T* other) { std::shared_ptr<T>::operator=(other); }
+
+		inline shared_ptrex(const shared_ptrex<T, D>& other) : std::shared_ptr<T>(other) { m_subset = other.m_subset; }
+		inline shared_ptrex(const shared_ptrex<T, D>&& other) : std::shared_ptr<T>(other) { m_subset = other.m_subset; }
+
+	protected:
+		D m_subset;
+};*/
+
+
 class ItemTreeNode
 {
 public:
 	typedef std::set<std::string> Items; // We need the sortedness for, e.g., the default join.
+	//typedef shared_ptrex<ItemTreeNode, bool> ExtensionPointer;
 	typedef std::shared_ptr<ItemTreeNode> ExtensionPointer;
 	typedef std::map<unsigned int, ExtensionPointer> ExtensionPointerTuple; // key: ID of the decomposition node at which value is located
 	typedef std::vector<ExtensionPointerTuple> ExtensionPointers;
+
+
+
+	
+	typedef std::unordered_map<unsigned int, std::vector<ItemTreeNode *>> ExtendedPointers;
+ 	typedef std::vector<std::weak_ptr<ItemTreeNode>> WeakChildren;
+	
+	struct LessSubsetComparator
+	{
+		bool operator()(const ItemTreeNode*, const ItemTreeNode*);
+	};
+
+	typedef std::map<const ItemTreeNode *, bool, LessSubsetComparator> SubsetNode;
+	//typedef std::set<const Items*, LessSubsetComparator> SubsetNode;
+
+	struct ItemTreeNodeResources
+	{
+		Items items;
+		Items optItems;
+		Items auxItems;
+	};
+	typedef std::unique_ptr<SubsetNode> ContentPointer;
+	typedef std::shared_ptr<ItemTreeNodeResources> ResourcePointer;
+
+
+
 
 	enum class Type {
 		UNDEFINED,
@@ -60,7 +122,7 @@ public:
 	// a defined type and the given node type is different from this.
 	// If the type is REJECT, sets the cost to the highest possible value,
 	// otherwise to 0.
-	ItemTreeNode(Items&& items = {}, Items&& auxItems = {}, ExtensionPointers&& extensionPointers = {{}}, Type type = Type::UNDEFINED);
+	ItemTreeNode(Items&& items = {}, Items&& auxItems = {}, ExtensionPointers&& extensionPointers = {{}}, Type type = Type::UNDEFINED, Items&& optItems= {});
 
 	// Returns the items of this node (but not the auxiliary items, see below).
 	const Items& getItems() const;
@@ -68,10 +130,37 @@ public:
 	// Returns the items that have been declared as auxiliary.
 	// These items are disregarded in the default join.
 	const Items& getAuxItems() const;
+	const Items& getOptItems() const;
 
 	const ExtensionPointers& getExtensionPointers() const;
 	void clearExtensionPointers();
 
+
+
+	//"copy" constructor
+	ItemTreeNode(const ItemTreeNode& rhs, SubsetNode* content, ExtensionPointerTuple& pt);
+	inline ExtensionPointers& getExtensionPointers() { return extensionPointers; }
+	void addExtPointer(ItemTreeNode* ptr, unsigned int globalId);
+	//void removeExtPointer(ItemTreeNode* ptr, unsigned int globalId);
+	void refreshCount();
+	
+	inline const ExtendedPointers& getExtPointers() const { return extendedPointers; }
+	inline ExtendedPointers& getExtPointers() { return extendedPointers; }
+
+	const WeakChildren& getWeakChildren() const;
+ 	// Constructs a weak_ptr from the argument and adds it to the list of weak children.
+ 	void addWeakChild(const std::shared_ptr<ItemTreeNode>& child);
+	
+	void setContent(SubsetNode* ptr);
+	inline SubsetNode* getContent() const { return contentptr.get(); }
+	const inline ResourcePointer& getIdentifier() const { return res; }
+	//inline void decreaseCounter(unsigned int nr) { count -= nr; }
+	inline void decreaseCounter(mpz_class& nr) { count -= nr; }
+	//inline void increaseCounter(unsigned int nr) { count += nr; }
+	inline void increaseCounter(mpz_class& nr) { count += nr; }
+	//inline void setCounter(mpz_class& nr) { count = nr; }
+
+		
 	const ItemTreeNode* getParent() const;
 	void setParent(const ItemTreeNode*);
 
@@ -109,11 +198,24 @@ public:
 	// Print this node (no newlines)
 	friend std::ostream& operator<<(std::ostream& os, const ItemTreeNode& node);
 
+	//virtual~ ItemTreeNode() { std::cout << "nodedestr" << std::endl; }
+
+	   //virtual ~ItemTree() { std::cout << "destr" << std::endl; }
 private:
-	Items items;
-	Items auxItems;
+
+
+	//const ItemTreeNode* id;
+	//Items items;
+	//Items auxItems;
+	ResourcePointer res;
 	ExtensionPointers extensionPointers;
+	ExtendedPointers extendedPointers;
+	ContentPointer contentptr;
+	WeakChildren weakChildren;
+
+
 	const ItemTreeNode* parent = nullptr;
+	//bool strictsubset;
 	mpz_class count; // number of possible extensions of this node
 	long cost = 0;
 	long currentCost = 0;
