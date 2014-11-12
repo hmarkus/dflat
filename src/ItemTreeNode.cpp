@@ -40,13 +40,10 @@ if(this->extensionPointers.empty())
 	}
 }
 
-ItemTreeNode::ItemTreeNode(const ItemTreeNode& rhs, SubsetNode* content, ExtensionPointerTuple& ptr) // : extensionPointers(1)
+ItemTreeNode::ItemTreeNode(const ItemTreeNode& rhs, SubsetNode* content, ExtensionPointerTuple& ptr) 
 : res(rhs.getIdentifier()) {
-	//strictsubset = false;
 	this->type = rhs.getType();
 	this->parent = rhs.getParent();
-	/*if (rhs.getParent() != nullptr)
-		std::cout << "asdf" << std::endl;*/
 
 	//TODO: this cost stuff
 	this->cost = rhs.cost;
@@ -55,55 +52,19 @@ ItemTreeNode::ItemTreeNode(const ItemTreeNode& rhs, SubsetNode* content, Extensi
 	this->hasAcceptingChild = rhs.hasAcceptingChild;
 	this->hasRejectingChild = rhs.hasRejectingChild;
 
-	//for (const auto& str : rhs.items)
-
-//		this->items.insert(rhs.items.cbegin(), rhs.items.cend());
-
-		//this->items.insert("__");
-
-	//for (const auto& str : rhs.auxItems)
-
-//		this->auxItems.insert(rhs.auxItems.cbegin(), rhs.auxItems.cend());
-
-		//this->auxItems.insert(str);
-
 	this->contentptr.reset(content);// = ContentPointer(new SubsetNode());
 	this->extendedPointers = rhs.extendedPointers;
-	//this->extendedPointers.reset(new ExtendedPointers(*rhs.extendedPointers.get()));
-	/*if (rhs.extendedPointers->size() == 0)
-		exit(9);*/
 
 	(this->extensionPointers).push_back(ptr);//std::move(ptr));
 
-	//ptr.clear();
-
-
-
-	/*for (auto& ptr : extensionPointers)
-	{
-		for (auto &mp : ptr)
-		//{
-			mp.second->addExtPointer(this, parentGlobalId);
-	}*/
-		//mp.second = std::shared_ptr<ItemTreeNode>(this);
-
-
-
-
 	//not necessary to delete extendedPointers, because they are unique already (just one occurence within the vector)
-
-
 }
 
 bool ItemTreeNode::LessSubsetComparator::operator()(const ItemTreeNode* a, const ItemTreeNode*b)
 {
         return a->getIdentifier().get() < b->getIdentifier().get();
         //return (a->getItems() < b->getItems()) || (a->getItems().size() == b->getItems().size() && !(a->getItems() > b->getItems()) && a->getAuxItems() < b->getAuxItems());
-
-        //return a < b;
 }
-
-//: extendedPointers(std::shared_ptr(new ExtendedPointers()))
 
 ItemTreeNode::ItemTreeNode(Items&& items, Items&& auxItems, ExtensionPointers&& extensionPointers, Type type, Items&& optItems)
 	: res(ResourcePointer(new ItemTreeNode::ItemTreeNodeResources()))//, id.get()->items(std::move(items))
@@ -115,8 +76,6 @@ ItemTreeNode::ItemTreeNode(Items&& items, Items&& auxItems, ExtensionPointers&& 
 	res->items = std::move(items);
 	res->auxItems = std::move(auxItems);
 	res->optItems = std::move(optItems);
-
-	//strictsubset = false;
 	assert(!this->extensionPointers.empty());
 	count = 0;
 	for(const ExtensionPointerTuple& tuple : this->extensionPointers) {
@@ -154,10 +113,6 @@ void ItemTreeNode::addExtPointer(ItemTreeNode* ptr, unsigned int globalId)
 			return;
 	m.push_back(ptr);
 }
-
-
-
-
 
 /*void ItemTreeNode::removeExtPointer(ItemTreeNode* ptr, unsigned int globalId)
 {

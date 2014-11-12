@@ -36,28 +36,14 @@ public:
 	// Return the complete item tree
 	virtual ItemTreePtr compute() = 0;
 
-	// XXX What if there is more than one parent node?
-	//Solver* getParentSolver();
-
-
-
-
+	//TODO: maybe friend someone...
 	inline void setNode(ItemTreeNode& n) { node = &n; }
 	inline const ItemTreeNode& getNode() const { return *node; }
 	inline ItemTreeNode& getNode() { return *node; }
-
-
-
 
 protected:
 	const Decomposition& decomposition;
 	const Application& app;
 
-
-	
 	ItemTreeNode* node;
-
-
-
-
 };

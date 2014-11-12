@@ -36,13 +36,6 @@ bool ItemTreePtrComparator::operator()(const ItemTreePtr& lhs, const ItemTreePtr
 		  (!rhs->costDifferenceSignIncrease(lhs) &&
 		  (lhs->getNode()->getContent() < rhs->getNode()->getContent())
 		  )))));
-
-	/*return lhs->getNode()->compareCostInsensitive(*rhs->getNode()) ||
-			(!rhs->getNode()->compareCostInsensitive(*lhs->getNode()) &&
-			 (std::lexicographical_compare(lhs->getChildren().begin(), lhs->getChildren().end(), rhs->getChildren().begin(), rhs->getChildren().end(), *this) ||
-			  (!std::lexicographical_compare(rhs->getChildren().begin(), rhs->getChildren().end(), lhs->getChildren().begin(), lhs->getChildren().end(), *this) &&
-			   lhs->costDifferenceSignIncrease(rhs)
-			  )));*/
 }
 
 ItemTree::Children::const_iterator ItemTree::addChildAndMerge(ChildPtr&& subtree)
@@ -65,7 +58,6 @@ ItemTree::Children::const_iterator ItemTree::addChildAndMerge(ChildPtr&& subtree
 		return children.end();
 	}
 	node->addWeakChild((*result.first)->getNode());
-	//std::cout << "now  " << node->getWeakChildren().size() << std::endl;
 	return result.first;
 }
 
