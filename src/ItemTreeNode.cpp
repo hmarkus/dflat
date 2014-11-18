@@ -24,12 +24,58 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include "ItemTreeNode.h"
 #include "ExtensionIterator.h"
 
-ItemTreeNode::ItemTreeNode(Items&& items, Items&& auxItems, ExtensionPointers&& extensionPointers, Type type)
-	: items(std::move(items))
-	, auxItems(std::move(auxItems))
+#include <iostream>
+
+void ItemTreeNode::refreshCount(){
+if(this->extensionPointers.empty())
+		count = 1;
+	else {
+		count = 0;
+		for(const ExtensionPointerTuple& tuple : this->extensionPointers) {
+			mpz_class product = 1;
+			for(const auto& predecessor : tuple)
+				product *= predecessor.second->getCount();
+			count += product;
+		}
+	}
+}
+
+ItemTreeNode::ItemTreeNode(const ItemTreeNode& rhs, SubsetNode* content, ExtensionPointerTuple& ptr) 
+: res(rhs.getIdentifier()) {
+	this->type = rhs.getType();
+	this->parent = rhs.getParent();
+
+	//TODO: this cost stuff
+	this->cost = rhs.cost;
+	this->currentCost = rhs.currentCost;
+	this->count = 0;//rhs.count;
+	this->hasAcceptingChild = rhs.hasAcceptingChild;
+	this->hasRejectingChild = rhs.hasRejectingChild;
+
+	this->contentptr.reset(content);// = ContentPointer(new SubsetNode());
+	this->extendedPointers = rhs.extendedPointers;
+
+	(this->extensionPointers).push_back(ptr);//std::move(ptr));
+
+	//not necessary to delete extendedPointers, because they are unique already (just one occurence within the vector)
+}
+
+bool ItemTreeNode::LessSubsetComparator::operator()(const ItemTreeNode* a, const ItemTreeNode*b)
+{
+        return a->getIdentifier().get() < b->getIdentifier().get();
+        //return (a->getItems() < b->getItems()) || (a->getItems().size() == b->getItems().size() && !(a->getItems() > b->getItems()) && a->getAuxItems() < b->getAuxItems());
+}
+
+ItemTreeNode::ItemTreeNode(Items&& items, Items&& auxItems, ExtensionPointers&& extensionPointers, Type type, Items&& optItems)
+	: res(ResourcePointer(new ItemTreeNode::ItemTreeNodeResources()))//, id.get()->items(std::move(items))
+//	, auxItems(std::move(auxItems))
 	, extensionPointers(std::move(extensionPointers))
+	, /*extendedPointers(std::shared_ptr<ExtendedPointers>(new ExtendedPointers())),*/ contentptr(nullptr)
 	, type(type)
 {
+	res->items = std::move(items);
+	res->auxItems = std::move(auxItems);
+	res->optItems = std::move(optItems);
 	assert(!this->extensionPointers.empty());
 	count = 0;
 	for(const ExtensionPointerTuple& tuple : this->extensionPointers) {
@@ -58,14 +104,45 @@ ItemTreeNode::ItemTreeNode(Items&& items, Items&& auxItems, ExtensionPointers&& 
 	currentCost = 0;
 }
 
+
+void ItemTreeNode::addExtPointer(ItemTreeNode* ptr, unsigned int globalId)
+{
+	auto& m = extendedPointers[globalId];
+	for (const auto& itm : m)
+		if (itm == ptr)
+			return;
+	m.push_back(ptr);
+}
+
+/*void ItemTreeNode::removeExtPointer(ItemTreeNode* ptr, unsigned int globalId)
+{
+	auto xt = extendedPointers.find(globalId);
+	if (xt != extendedPointers.end())
+	{
+		for (auto yt = xt->second.begin(); yt != xt->second.end();)
+			if (*yt == ptr)
+			{
+				yt = xt->second.erase(yt);
+				break;
+			}
+			else
+				++yt;
+	}
+}*/
+
 const ItemTreeNode::Items& ItemTreeNode::getItems() const
 {
-	return items;
+	return res->items;
+}
+
+const ItemTreeNode::Items& ItemTreeNode::getOptItems() const
+{
+	return res->optItems;
 }
 
 const ItemTreeNode::Items& ItemTreeNode::getAuxItems() const
 {
-	return auxItems;
+	return res->auxItems;
 }
 
 const ItemTreeNode::ExtensionPointers& ItemTreeNode::getExtensionPointers() const
@@ -86,6 +163,16 @@ const ItemTreeNode* ItemTreeNode::getParent() const
 void ItemTreeNode::setParent(const ItemTreeNode* parent)
 {
 	this->parent = parent;
+}
+
+const ItemTreeNode::WeakChildren& ItemTreeNode::getWeakChildren() const
+{
+	return weakChildren;
+}
+ 
+void ItemTreeNode::addWeakChild(const std::shared_ptr<ItemTreeNode>& child)
+{
+	weakChildren.emplace_back(child);
 }
 
 const mpz_class& ItemTreeNode::getCount() const
@@ -172,8 +259,9 @@ mpz_class ItemTreeNode::countExtensions(const ExtensionIterator& parentIterator)
 
 void ItemTreeNode::merge(ItemTreeNode&& other)
 {
-	assert(items == other.items);
-	assert(auxItems == other.auxItems);
+	assert(res->items == other.res->items);
+	assert(res->auxItems == other.res->auxItems);
+	assert(res->optItems == other.res->optItems);
 	assert(cost == other.cost);
 	assert(currentCost == other.currentCost);
 
@@ -185,7 +273,7 @@ void ItemTreeNode::merge(ItemTreeNode&& other)
 bool ItemTreeNode::compareCostInsensitive(const ItemTreeNode& other) const
 {
 	// XXX Check that this is not less efficient than a long boolean expression
-	return std::tie(items, type, hasAcceptingChild, hasRejectingChild, auxItems) < std::tie(other.items, other.type, other.hasAcceptingChild, other.hasRejectingChild, other.auxItems);
+	return std::tie(res->items, type, hasAcceptingChild, hasRejectingChild, res->auxItems) < std::tie(other.res->items, other.type, other.hasAcceptingChild, other.hasRejectingChild, other.res->auxItems);
 }
 
 std::ostream& operator<<(std::ostream& os, const ItemTreeNode& node)
@@ -217,10 +305,13 @@ std::ostream& operator<<(std::ostream& os, const ItemTreeNode& node)
 		os << "(r) ";
 
 	// Print items
-	for(const auto& item : node.items)
+	for(const auto& item : node.res->items)
 		os << item << ' ';
-	for(const auto& item : node.auxItems)
+	for(const auto& item : node.res->auxItems)
 		os << item << ' ';
+	for(const auto& item : node.res->optItems)
+		os << item << ' ';
+
 
 //	os << "; extend: {";
 //	std::string tupleSep;
@@ -246,4 +337,9 @@ std::ostream& operator<<(std::ostream& os, const ItemTreeNode& node)
 std::ostream& operator<<(std::ostream& os, const std::shared_ptr<ItemTreeNode>& node)
 {
 	return os << *node;
+}
+
+void ItemTreeNode::setContent(SubsetNode* ptr)
+{
+	this->contentptr = ContentPointer(ptr);
 }

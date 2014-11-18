@@ -27,12 +27,14 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <string>
 #include <gmpxx.h>
+#include <unordered_map>
 
 class ExtensionIterator;
 
 // IMPORTANT NOTE: Remember that when you change something here it might
 // require changing other classes like ItemTreePtrComparator (and
 // solver::asp::trees::UncompressedItemTreePtrComparator).
+
 
 class ItemTreeNode
 {
@@ -41,6 +43,29 @@ public:
 	typedef std::shared_ptr<ItemTreeNode> ExtensionPointer;
 	typedef std::map<unsigned int, ExtensionPointer> ExtensionPointerTuple; // key: ID of the decomposition node at which value is located
 	typedef std::vector<ExtensionPointerTuple> ExtensionPointers;
+
+
+
+	
+	typedef std::unordered_map<unsigned int, std::vector<ItemTreeNode *>> ExtendedPointers;
+ 	typedef std::vector<std::weak_ptr<ItemTreeNode>> WeakChildren;
+	
+	struct LessSubsetComparator
+	{
+		bool operator()(const ItemTreeNode*, const ItemTreeNode*);
+	};
+
+	typedef std::map<const ItemTreeNode *, bool, LessSubsetComparator> SubsetNode;
+	//typedef std::set<const Items*, LessSubsetComparator> SubsetNode;
+
+	struct ItemTreeNodeResources
+	{
+		Items items;
+		Items optItems;
+		Items auxItems;
+	};
+	typedef std::unique_ptr<SubsetNode> ContentPointer;
+	typedef std::shared_ptr<ItemTreeNodeResources> ResourcePointer;
 
 	enum class Type {
 		UNDEFINED,
@@ -60,7 +85,7 @@ public:
 	// a defined type and the given node type is different from this.
 	// If the type is REJECT, sets the cost to the highest possible value,
 	// otherwise to 0.
-	ItemTreeNode(Items&& items = {}, Items&& auxItems = {}, ExtensionPointers&& extensionPointers = {{}}, Type type = Type::UNDEFINED);
+	ItemTreeNode(Items&& items = {}, Items&& auxItems = {}, ExtensionPointers&& extensionPointers = {{}}, Type type = Type::UNDEFINED, Items&& optItems= {});
 
 	// Returns the items of this node (but not the auxiliary items, see below).
 	const Items& getItems() const;
@@ -68,10 +93,30 @@ public:
 	// Returns the items that have been declared as auxiliary.
 	// These items are disregarded in the default join.
 	const Items& getAuxItems() const;
+	const Items& getOptItems() const;
 
 	const ExtensionPointers& getExtensionPointers() const;
 	void clearExtensionPointers();
 
+	//"copy" constructor
+	ItemTreeNode(const ItemTreeNode& rhs, SubsetNode* content, ExtensionPointerTuple& pt);
+	inline ExtensionPointers& getExtensionPointers() { return extensionPointers; }
+	void addExtPointer(ItemTreeNode* ptr, unsigned int globalId);
+	void refreshCount();
+	
+	inline const ExtendedPointers& getExtPointers() const { return extendedPointers; }
+	inline ExtendedPointers& getExtPointers() { return extendedPointers; }
+
+	const WeakChildren& getWeakChildren() const;
+ 	// Constructs a weak_ptr from the argument and adds it to the list of weak children.
+ 	void addWeakChild(const std::shared_ptr<ItemTreeNode>& child);
+	
+	void setContent(SubsetNode* ptr);
+	inline SubsetNode* getContent() const { return contentptr.get(); }
+	const inline ResourcePointer& getIdentifier() const { return res; }
+	inline void decreaseCounter(mpz_class& nr) { count -= nr; }
+	inline void increaseCounter(mpz_class& nr) { count += nr; }
+		
 	const ItemTreeNode* getParent() const;
 	void setParent(const ItemTreeNode*);
 
@@ -110,9 +155,12 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, const ItemTreeNode& node);
 
 private:
-	Items items;
-	Items auxItems;
+	ResourcePointer res;
 	ExtensionPointers extensionPointers;
+	ExtendedPointers extendedPointers;
+	ContentPointer contentptr;
+	WeakChildren weakChildren;
+
 	const ItemTreeNode* parent = nullptr;
 	mpz_class count; // number of possible extensions of this node
 	long cost = 0;

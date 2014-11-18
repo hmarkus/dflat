@@ -26,13 +26,19 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 #endif
 
+#ifdef OUT_TEST_PATCH
+	#include <iostream>
+#endif
 bool ItemTreePtrComparator::operator()(const ItemTreePtr& lhs, const ItemTreePtr& rhs)
 {
 	return lhs->getNode()->compareCostInsensitive(*rhs->getNode()) ||
 		(!rhs->getNode()->compareCostInsensitive(*lhs->getNode()) &&
 		 (std::lexicographical_compare(lhs->getChildren().begin(), lhs->getChildren().end(), rhs->getChildren().begin(), rhs->getChildren().end(), *this) ||
 		  (!std::lexicographical_compare(rhs->getChildren().begin(), rhs->getChildren().end(), lhs->getChildren().begin(), lhs->getChildren().end(), *this) &&
-		   lhs->costDifferenceSignIncrease(rhs))));
+		   (lhs->costDifferenceSignIncrease(rhs) ||
+		  (!rhs->costDifferenceSignIncrease(lhs) &&
+		  (lhs->getNode()->getContent() < rhs->getNode()->getContent())
+		  )))));
 }
 
 ItemTree::Children::const_iterator ItemTree::addChildAndMerge(ChildPtr&& subtree)
@@ -54,6 +60,7 @@ ItemTree::Children::const_iterator ItemTree::addChildAndMerge(ChildPtr&& subtree
 		origChild->merge(std::move(*subtree));
 		return children.end();
 	}
+	node->addWeakChild((*result.first)->getNode());
 	return result.first;
 }
 
@@ -125,7 +132,14 @@ void ItemTree::printExtensions(std::ostream& os, unsigned int maxDepth, bool pri
 		assert(children.empty() || bestChildren.empty() == false);
 
 		// When limiting the depth causes children not to be extended, print the number of accepting children (with optimum cost)
-		if(maxDepth == 0 && children.empty() == false) {
+		if((maxDepth == 0 
+#ifdef OUT_TEST_PATCH
+	|| root
+#endif
+		) && children.empty() == false) {
+#ifdef OUT_TEST_PATCH
+			std::cout << '[';
+#endif
 			os << '[';
 			if(!printCount)
 				os << ">=";
@@ -141,6 +155,10 @@ void ItemTree::printExtensions(std::ostream& os, unsigned int maxDepth, bool pri
 				for(const auto& child : bestChildren)
 					count += child->node->countExtensions(*currentIt);
 			}
+#ifdef OUT_TEST_PATCH
+			std::cout << count << "] ";
+			std::cout << std::endl;
+#endif
 			os << count << "] ";
 		}
 
@@ -319,6 +337,7 @@ void ItemTree::merge(ItemTree&& other)
 {
 	assert(node->getItems() == other.node->getItems());
 	assert(node->getAuxItems() == other.node->getAuxItems());
+	assert(node->getOptItems() == other.node->getOptItems());
 	assert(node->getType() == other.node->getType());
 	assert(node->getParent());
 	assert(node->getParent() == other.node->getParent());

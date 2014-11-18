@@ -36,7 +36,14 @@ public:
 	// Return the complete item tree
 	virtual ItemTreePtr compute() = 0;
 
+	//TODO: maybe friend someone...
+	inline void setNode(ItemTreeNode& n) { node = &n; }
+	inline const ItemTreeNode& getNode() const { return *node; }
+	inline ItemTreeNode& getNode() { return *node; }
+
 protected:
 	const Decomposition& decomposition;
 	const Application& app;
+
+	ItemTreeNode* node;
 };

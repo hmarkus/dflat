@@ -27,6 +27,6 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 
 Solver::Solver(const Decomposition& decomposition, const Application& app)
 	: decomposition(decomposition)
-	, app(app)
+	, app(app), node(nullptr)
 {
 }

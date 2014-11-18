@@ -33,6 +33,11 @@ const GringoOutputProcessor::ItemAtomInfos& GringoOutputProcessor::getItemAtomIn
 	return itemAtomInfos;
 }
 
+const GringoOutputProcessor::OptItemAtomInfos& GringoOutputProcessor::getOptItemAtomInfos() const
+{
+	return optItemAtomInfos;
+}
+
 const GringoOutputProcessor::AuxItemAtomInfos& GringoOutputProcessor::getAuxItemAtomInfos() const
 {
 	return auxItemAtomInfos;
@@ -57,7 +62,20 @@ void GringoOutputProcessor::storeAtom(unsigned int atomUid, Gringo::Value v)
 {
 	// Store the atom together with its symbol table key and extracted arguments
 	const std::string predicate = *v.name();
-	if(predicate == "item") {
+
+
+
+	if(predicate == "optItem") {
+		ASP_CHECK(v.args().size() == 1, "'optItem' predicate does not have arity 1");
+		std::ostringstream argument;
+		v.args().front().print(argument);
+		optItemAtomInfos.emplace_back(OptItemAtomInfo{OptItemAtomArguments{argument.str()}, atomUid});
+
+	}
+
+
+
+	else if(predicate == "item") {
 		ASP_CHECK(v.args().size() == 1, "'item' predicate does not have arity 1");
 		std::ostringstream argument;
 		v.args().front().print(argument);

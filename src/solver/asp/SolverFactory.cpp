@@ -22,6 +22,7 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include "Solver.h"
 #include "../default_join/Solver.h"
 #include "../lazy_asp/Solver.h"
+#include "../layered/Solver.h"
 #include "../../Application.h"
 #include "../../Decomposition.h"
 
@@ -41,6 +42,9 @@ SolverFactory::SolverFactory(Application& app, bool newDefault)
 	, optDefaultJoin    ("default-join",     "Use built-in implementation for join nodes")
 	, optLazy           ("lazy",             "Use lazy evaluation (experimental)")
 	, optTables         ("tables",           "Use table mode (for item trees of height at most 1)")
+	, optLayeredMin       ("tables-min",       "Minimize the items (forces the tables option)")
+	, optLayeredMax       ("tables-max",       "Maximize the items (forces the tables option)")
+
 #ifdef HAVE_WORDEXP_H
 	, optIgnoreModelines("ignore-modelines", "Do not scan the encoding files for modelines")
 #endif
@@ -57,6 +61,13 @@ SolverFactory::SolverFactory(Application& app, bool newDefault)
 	optTables.addCondition(selected);
 	app.getOptionHandler().addOption(optTables, OPTION_SECTION);
 
+	optLayeredMin.addCondition(selected);
+	app.getOptionHandler().addOption(optLayeredMin, OPTION_SECTION);
+	
+	optLayeredMax.addCondition(selected);
+	app.getOptionHandler().addOption(optLayeredMax, OPTION_SECTION);
+
+
 #ifdef HAVE_WORDEXP_H
 	optIgnoreModelines.addCondition(selected);
 	app.getOptionHandler().addOption(optIgnoreModelines, OPTION_SECTION);
@@ -72,7 +83,9 @@ std::unique_ptr<::Solver> SolverFactory::newSolver(const Decomposition& decompos
 		return std::unique_ptr<::Solver>(new lazy_asp::Solver(decomposition, app, optEncodingFiles.getValues()));
 	}
 	else {
-		if(optDefaultJoin.isUsed() && decomposition.isJoinNode())
+		if (optLayeredMax.isUsed() || optLayeredMin.isUsed())
+			return std::unique_ptr<::Solver>(new layered::Solver(decomposition, app, optEncodingFiles.getValues(), optLayeredMax.isUsed()));
+		else if(optDefaultJoin.isUsed() && decomposition.isJoinNode())
 			return std::unique_ptr<::Solver>(new default_join::Solver(decomposition, app, optTables.isUsed() && decomposition.isRoot()));
 		else
 			return std::unique_ptr<::Solver>(new asp::Solver(decomposition, app, optEncodingFiles.getValues(), optTables.isUsed()));

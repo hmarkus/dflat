@@ -64,6 +64,8 @@ public:
 
 	const Node& getNode() const { return node; }
 	const Children& getChildren() const { return children; }
+	//TODO: do not make it public for everyone => friend?
+	Children& getChildren() { return children; }
 
 	// Adds the root of "child" to the list of children. Takes ownership of the whole subgraph rooted at "child".
 	void addChild(ChildPtr&& child)
