@@ -72,11 +72,43 @@ void Printer::solverEvent(const std::string& msg)
 {
 }
 
+#ifdef OUT_TEST_PATCH
+
+#include <iostream>
+#include <iomanip>
+
+class null_out_buf : public std::streambuf {
+    public:
+        virtual std::streamsize xsputn (const char * s, std::streamsize n) {
+            return n;
+        }
+        virtual int overflow (int c) {
+            return 1;
+        }
+};
+
+class null_out_stream : public std::ostream {
+    public:
+        null_out_stream() : std::ostream (&buf) {}
+    private:
+        null_out_buf buf;
+};
+
+null_out_stream cnul;       // My null stream.
+
+#endif
+
 void Printer::result(const ItemTreePtr& rootItemTree)
 {
 	std::cout << "Solutions:" << std::endl;
 	if(rootItemTree)
-		rootItemTree->printExtensions(std::cout, app.getMaterializationDepth(), !app.isCountingDisabled());
+		rootItemTree->printExtensions(
+#ifdef OUT_TEST_PATCH
+	cnul
+#else
+	std::cout
+#endif
+		, app.getMaterializationDepth(), !app.isCountingDisabled());
 	else
 		std::cout << "[0]" << std::endl;
 }

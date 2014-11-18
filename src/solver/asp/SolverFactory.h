@@ -52,6 +52,8 @@ private:
 	options::Option           optDefaultJoin;
 	options::Option           optLazy;
 	options::Option           optTables;
+	options::Option           optLayeredMin;
+	options::Option           optLayeredMax;
 #ifdef HAVE_WORDEXP_H
 	options::Option           optIgnoreModelines;
 	// To avoid infinite recursions

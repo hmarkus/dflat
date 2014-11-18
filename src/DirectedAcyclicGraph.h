@@ -65,6 +65,19 @@ public:
 	const Node& getNode() const { return node; }
 	const Children& getChildren() const { return children; }
 
+
+
+
+
+
+	
+	//Parents& getParents()   { return parents; }
+	Children& getChildren() { return children; }
+
+
+	/*Children& getChilds() { return children; }
+	Parents& getPars() { return parents; }*/
+
 	// Adds the root of "child" to the list of children. Takes ownership of the whole subgraph rooted at "child".
 	void addChild(ChildPtr&& child)
 	{
