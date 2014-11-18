@@ -26,6 +26,9 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 #endif
 
+#ifdef OUT_TEST_PATCH
+	#include <iostream>
+#endif
 bool ItemTreePtrComparator::operator()(const ItemTreePtr& lhs, const ItemTreePtr& rhs)
 {
 	return lhs->getNode()->compareCostInsensitive(*rhs->getNode()) ||
@@ -129,7 +132,14 @@ void ItemTree::printExtensions(std::ostream& os, unsigned int maxDepth, bool pri
 		assert(children.empty() || bestChildren.empty() == false);
 
 		// When limiting the depth causes children not to be extended, print the number of accepting children (with optimum cost)
-		if(maxDepth == 0 && children.empty() == false) {
+		if((maxDepth == 0 
+#ifdef OUT_TEST_PATCH
+	|| root
+#endif
+		) && children.empty() == false) {
+#ifdef OUT_TEST_PATCH
+			std::cout << '[';
+#endif
 			os << '[';
 			if(!printCount)
 				os << ">=";
@@ -145,6 +155,10 @@ void ItemTree::printExtensions(std::ostream& os, unsigned int maxDepth, bool pri
 				for(const auto& child : bestChildren)
 					count += child->node->countExtensions(*currentIt);
 			}
+#ifdef OUT_TEST_PATCH
+			std::cout << count << "] ";
+			std::cout << std::endl;
+#endif
 			os << count << "] ";
 		}
 
