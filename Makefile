@@ -1,5 +1,5 @@
 # You probably need to adjust the *_dir variables before running "make"
-cxxflags_release="-DWITH_THREADS=0"
+cxxflags_release="-DOUT_TEST_PATCH -DWITH_THREADS=0"
 cxxflags_debug=$(cxxflags_release)
 cxxflags_gprof=$(cxxflags_debug)
 cxxflags_release32="-DWITH_THREADS=0 -m32 -DNO_UNICODE"
