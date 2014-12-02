@@ -109,6 +109,7 @@ void Printer::result(const ItemTreePtr& rootItemTree)
 		rootItemTree->printExtensions(
 #ifdef OUT_TEST_PATCH
 	cnul
+	//std::cout
 #else
 	std::cout
 #endif

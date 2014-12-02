@@ -44,7 +44,7 @@ Solver::Solver(const Decomposition& decomposition, const Application& app, const
 
 
 #define MAINTAIN_KILL_FLAG
-#define DEBUG
+//#define DEBUG
 static int join = 0, total = 0, newguys = 0;
 
 void Solver::removeExtToOldParent(ItemTreeNode& itree, unsigned int& i, mpz_class& counts)
@@ -101,11 +101,10 @@ void Solver::removeExtToOldParent(ItemTreeNode& itree, unsigned int& i, mpz_clas
 			}
 		}	
 	}
-	//special case if the last one gets removed;
-	if (itree.getExtensionPointers().size() == 1)
+	/*if (itree.getExtensionPointers().size() == 1)
 	{
 		//TODO		
-	}
+	}*/
 	assert(found);
 	itree.decreaseCounter(counts);
 	//std::cout << "decrease " << (counts);
@@ -383,6 +382,7 @@ void Solver::compute2()
 				++solver::layered::total;
 				std::set<ItemTreeNode*> forkeds;
 				auto* content = itree.getContent();
+				mpz_class counts;
 				if (decomposition.isJoinNode())// itree.getExtensionPointers().size() >= 2)//join node
 				{
 					assert(decomposition.getChildren().size() == 2);
@@ -409,12 +409,15 @@ void Solver::compute2()
 							{
 								delete content;
 								content = nullptr;
-								mpz_class counts;
 								removeExtToOldParent(itree, i, counts);
+#ifdef DEBUG
+								std::cout << "REM!" << std::endl;
+#endif
 							}
 							else
+							{
 								for (auto it = tplkv->second->getContent()->begin(); 
-										it != tplkv->second->getContent()->end(); ++it )	//go downward
+										content && it != tplkv->second->getContent()->end(); ++it )	//go downward
 								{
 									const auto *subs = it->first;
 									//look at the results
@@ -433,7 +436,7 @@ void Solver::compute2()
 												if (pos2 != extis.end())
 												{
 													for (auto itx = tplkv2->second->getContent()->begin(); 
-														itx != tplkv2->second->getContent()->end(); ++itx )	//go downward
+														content && itx != tplkv2->second->getContent()->end(); ++itx )	//go downward
 													{
 														const auto *subs2 = itx->first;
 														if (pos2->second.get() == subs2)
@@ -442,12 +445,16 @@ void Solver::compute2()
 															auto itins = content->insert(std::pair<const ItemTreeNode*, bool>(succ, d = itx->second || it->second)).first;
 															itins->second = itins->second || d;
 															
-															if (itins->second)
+															if (itins->second && (succ == &itree || 
+															&succ->getIdentifier() == &itree.getIdentifier()))	//self strict reference
 															{
-																delete content;
+																/*delete content;
 																content = nullptr;
-																mpz_class counts;
-																removeExtToOldParent(itree, i, counts);
+																removeExtToOldParent(itree, i, counts);*/
+#ifdef DEBUG
+																std::cout << "SELF_LOOP!" << std::endl;
+#endif
+
 																break;
 															}
 
@@ -457,8 +464,6 @@ void Solver::compute2()
 															std::cout << std::endl;
 	#endif
 														}
-														if (!content)
-															break;
 													}
 												}
 											}
@@ -468,10 +473,8 @@ void Solver::compute2()
 										if (!content)
 											break;
 									}
-									if (!content)
-										break;
 								}
-							
+							}
 							assert(ext->size() == 2);
 							if (content)
 								insertCompressed(itree, content, ext, i, forkeds);
@@ -486,60 +489,61 @@ void Solver::compute2()
 						auto* ext = &(itree.getExtensionPointers()[i]);
 						if (ext->size() > 0)
 						{
-							//if (!content)
 							content = new ItemTreeNode::SubsetNode();
-							for (auto& tplkv : *ext)	//goto ext pointers
+							auto& tplkv = *ext->begin();
+							freeAll(tplkv.second.get());
+							if (tplkv.second->getContent() == nullptr)
 							{
-								freeAll(tplkv.second.get());
-								if (tplkv.second->getContent() == nullptr)
+								delete content;
+								content = nullptr;
+								removeExtToOldParent(itree, i, counts);
+#ifdef DEBUG
+								std::cout << "REM!" << std::endl;
+#endif
+
+							}
+							else
+							{
+								for (auto it = tplkv.second->getContent()->begin(); 
+									content && it != tplkv.second->getContent()->end(); ++it)	//go downward
 								{
-									delete content;
-									content = nullptr;
-									mpz_class counts;
-									removeExtToOldParent(itree, i, counts);
-								}
-								else
-									for (auto it = tplkv.second->getContent()->begin(); 
-										it != tplkv.second->getContent()->end(); ++it)	//go downward
+									const auto *subs = it->first;
+									//look at the results
+									const auto &fnd = subs->getExtPointers().find(decomposition.getNode().getGlobalId());
+									assert (fnd != subs->getExtPointers().end());
+									
+									for (auto succ: fnd->second)
 									{
-										const auto *subs = it->first;
-										//look at the results
-										const auto &fnd = subs->getExtPointers().find(decomposition.getNode().getGlobalId());
-										assert (fnd != subs->getExtPointers().end());
-										
-										for (auto succ: fnd->second)
+										if ((!maximize && (itree.getIdentifier() == succ->getIdentifier() || 
+												std::includes(itree.getOptItems().begin(), itree.getOptItems().end(),
+												succ->getOptItems().begin(), succ->getOptItems().end())))
+										|| (maximize && (itree.getIdentifier() == succ->getIdentifier() || 
+												std::includes(succ->getOptItems().begin(), succ->getOptItems().end(),
+												itree.getOptItems().begin(), itree.getOptItems().end()))))
 										{
-											if ((!maximize && (itree.getIdentifier() == succ->getIdentifier() || 
-													std::includes(itree.getOptItems().begin(), itree.getOptItems().end(),
-													succ->getOptItems().begin(), succ->getOptItems().end())))
-											|| (maximize && (itree.getIdentifier() == succ->getIdentifier() || 
-													std::includes(succ->getOptItems().begin(), succ->getOptItems().end(),
-													itree.getOptItems().begin(), itree.getOptItems().end()))))
+											bool d;
+											auto itins = content->insert(std::pair<const ItemTreeNode*, bool>(succ, 
+												d=(maximize && succ->getOptItems().size() > itree.getOptItems().size()) || 
+												(!maximize && succ->getOptItems().size() < itree.getOptItems().size()) || it->second)).first;
+											itins->second = itins->second || d;
+											if (itins->second && (succ == &itree || &succ->getIdentifier() == &itree.getIdentifier()))	//self strict reference
 											{
-												bool d;
-												auto itins = content->insert(std::pair<const ItemTreeNode*, bool>(succ, 
-													d=(maximize && succ->getOptItems().size() > itree.getOptItems().size()) || 
-													(!maximize && succ->getOptItems().size() < itree.getOptItems().size()) || it->second)).first;
-												itins->second = itins->second || d;
-												if (itins->second)
-												{
-													delete content;
-													content = nullptr;
-													mpz_class counts;
-													removeExtToOldParent(itree, i, counts);
-													break;
-												}
-	#ifdef DEBUG
-												nodeDebug(succ);
-												std::cout << " //" << d  << "," << succ->getOptItems().size() << "," << itree.getOptItems().size() << "//" << std::endl;
-	#endif
+												/*delete content;
+												content = nullptr;
+												removeExtToOldParent(itree, i, counts);*/
+#ifdef DEBUG
+												std::cout << "SELF_LOOP!" << std::endl;
+#endif
+
+												break;
 											}
+#ifdef DEBUG
+											nodeDebug(succ);
+											std::cout << " //" << d  << "," << succ->getOptItems().size() << "," << itree.getOptItems().size() << "//" << std::endl;
+#endif
 										}
-										if (!content)
-											break;
 									}
-								if (!content)
-									break;
+								}
 							}
 							if (content)
 								insertCompressed(itree, content, ext, i, forkeds);
