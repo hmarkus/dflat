@@ -44,6 +44,7 @@ Solver::Solver(const Decomposition& decomposition, const Application& app, const
 
 
 #define MAINTAIN_KILL_FLAG
+#define KILL_STR "kill"
 //#define DEBUG
 static int join = 0, total = 0, newguys = 0;
 
@@ -589,7 +590,7 @@ ItemTreePtr Solver::compute()
 				auto &node = *(*it)->getNode().get();
 				bool found = false;
 #ifdef MAINTAIN_KILL_FLAG
-				if (node.getAuxItems().find("kill") != node.getAuxItems().end())
+				if (node.getAuxItems().find(KILL_STR) != node.getAuxItems().end())
 					found = true;
 #endif
 				if (!found && node.getContent() && node.getContent()->size() > 0)

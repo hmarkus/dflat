@@ -1,4 +1,4 @@
-%dflat: -e head -e pos -e neg -d td --no-empty-leaves --depth 0
+%dflat: -e head -e pos -e neg -d td --no-empty-leaves
 % Each answer set encodes a top-level item set and a subsidiary one
 length(2).
 or(0).
