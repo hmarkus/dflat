@@ -1,3 +1,8 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ASP via reductino to Circumscription      %
+% using semi-normalized tree decompositions %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Make explicit that a row interprets an atom as false or a clause as unsatisfied
 false(R,X) :- childRow(R,N), bag(N,X), not childItem(R,X).
 unsat(R,C) :- childRow(R,N), bag(N,C), not childAuxItem(R,C).
@@ -17,15 +22,19 @@ auxItem(C) :- extend(R), childAuxItem(R,C), current(C).
 % Guess truth value of introduced atoms
 { item(A) : atom(A) , introduced(A) }.
 
-optItem(X) :- item(X).
+optItem(X) :- item(X), varying(X).
+optItem(t(X)) :- item(X), fixed(X).
+optItem(f(X)) :- not item(X), fixed(X), current(X), atom(X).
 
 % Through the guess, clauses may become satisfied
 auxItem(C) :- current(C;A), pos(C,A), item(A).
 auxItem(C) :- current(C;A), neg(C,A), not item(A).
 
+auxItem(kill) :- same(A, B), current(A), current(B), item(A), not item(B).
+auxItem(kill) :- same(A, B), current(A), current(B), item(B), not item(A).
+auxItem(kill) :- extend(R), childAuxItem(R,kill).
 
-
-%#hide.
+#hide.
 #show item/1.
 #show optItem/1.
 #show auxItem/1.

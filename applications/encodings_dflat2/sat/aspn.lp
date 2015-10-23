@@ -1,4 +1,10 @@
-%dflat: -e head -e pos -e neg -d td --no-empty-leaves --depth 0
+%dflat: -e head -e pos -e neg -d td --no-empty-leaves
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ASP                                      %
+% using non-normalized tree decompositions %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Each answer set encodes a top-level item set and a subsidiary one
 length(2).
 or(0).
@@ -8,7 +14,7 @@ and(1).
 false(S,X) :- sub(_,S), atNode(S,N), bag(N,X), not childItem(S,X).
 
 % Guess a branch in the item tree for every child node
-1 { extend(0,R) : rootOf(R,N) } 1 :- childNode(N).
+extend(0,R) :- root(R).
 1 { extend(L+1,S) : sub(R,S) } 1 :- extend(L,R), L < 2.
 
 % Only join child item sets that coincide on common atoms
@@ -45,8 +51,7 @@ item(2,smaller) :- atom(A), item(1,A), not item(2,A).
 reject :- final, item(2,smaller).
 accept :- final, not reject.
 
-
-
+#hide.
 #show extend/2.
 #show length/1.
 #show item/2.
