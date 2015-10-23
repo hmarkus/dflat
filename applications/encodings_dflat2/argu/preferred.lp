@@ -14,10 +14,10 @@ extend(0,R) :- root(R).
 
 % Only join root-to-leaf paths coinciding on colors
 nIn(S,A)  :- childNode(N), atNode(S,N), bag(N,A), not childItem(S,in(A)).
-nDef(S,A) :- childNode(N), atNode(S,N), bag(N,A), not childAuxItem(S,def(A)), not childAuxItem(S,defc(A)).
+nDef(S,A) :- childNode(N), atNode(S,N), bag(N,A), not childAuxItem(S,def(A)), not childAuxItem(S,attc(A)).
 :- extend(L,S1;L,S2), childItem(S1,in(A)),      nIn(S2,A).
 :- extend(L,S1;L,S2), childAuxItem(S1,def(A)),  nDef(S2,A).
-:- extend(L,S1;L,S2), childAuxItem(S1,defc(A)), nDef(S2,A).
+:- extend(L,S1;L,S2), childAuxItem(S1,attc(A)), nDef(S2,A).
 
 % Inherit arguments that are in, defeated or attackers
 item(L,in(A))  :- extend(L,S), childItem(S,in(A)),      current(A).
@@ -51,7 +51,6 @@ auxItem(2,bigger) :- item(2,A), not item(1,A).	%bigger S
 reject :- final, auxItem(2,bigger).
 accept :- final, not reject.
 
-#hide.
 #show length/1.
 #show or/1.
 #show and/1.

@@ -51,7 +51,6 @@ item(2,smaller) :- atom(A), item(1,A), not item(2,A).
 reject :- final, item(2,smaller).
 accept :- final, not reject.
 
-#hide.
 #show extend/2.
 #show length/1.
 #show item/2.

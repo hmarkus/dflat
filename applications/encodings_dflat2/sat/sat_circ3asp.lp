@@ -34,7 +34,6 @@ auxItem(kill) :- same(A, B), current(A), current(B), item(A), not item(B).
 auxItem(kill) :- same(A, B), current(A), current(B), item(B), not item(A).
 auxItem(kill) :- extend(R), childAuxItem(R,kill).
 
-#hide.
 #show item/1.
 #show optItem/1.
 #show auxItem/1.

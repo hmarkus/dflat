@@ -49,7 +49,6 @@ optItem(A) :- item(in(A)).
 optItem(A) :- auxItem(attc(A)).
 optItem(A) :- auxItem(def(A)).
 
-#hide.
 #show item/1.
 #show auxItem/1.
 #show extend/1.

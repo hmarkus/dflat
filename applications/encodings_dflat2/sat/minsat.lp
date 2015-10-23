@@ -41,7 +41,6 @@ auxItem(2,smaller) :- atom(A), item(1,A), not item(2,A).
 auxItem(L,C) :- current(C;A), pos(C,A), item(L,A), level(L).
 auxItem(L,C) :- current(C;A), neg(C,A), not item(L,A), level(L).
 
-#hide.
 #show item/2.
 #show auxItem/2.
 #show length/1.

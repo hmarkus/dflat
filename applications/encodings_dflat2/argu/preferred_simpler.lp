@@ -41,7 +41,6 @@ auxItem(2,bigger) :- item(2,A), not item(1,A).	%bigger S
 reject :- final, auxItem(2,bigger).
 accept :- final, not reject.
 
-#hide.
 #show length/1.
 #show or/1.
 #show and/1.

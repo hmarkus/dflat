@@ -41,7 +41,6 @@ optItem(S) :- atom(S), item(S).
 optItem(a(S)) :- atom(S), item(S), not auxItem(kill).
 optItem(a(S)) :- atom(S), item(a(S)).
 
-#hide.
 #show optItem/1.
 #show extend/1.
 #show item/1.

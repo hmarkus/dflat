@@ -30,7 +30,6 @@ optItem(f(X)) :- not item(X), fixed(X), current(X), atom(X).
 auxItem(C) :- current(C;A), pos(C,A), item(A).
 auxItem(C) :- current(C;A), neg(C,A), not item(A).
 
-#hide.
 #show item/1.
 #show optItem/1.
 #show auxItem/1.

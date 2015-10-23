@@ -22,7 +22,6 @@ auxItem(att(A)) :- current(A;B), att(A,B), item(in(B)), not auxItem(def(A)).
 
 optItem(A) :- item(in(A)).
 
-#hide.
 #show item/1.
 #show auxItem/1.
 #show extend/1.
