@@ -1,5 +1,5 @@
 /*{{{
-Copyright 2012-2014, Bernhard Bliem
+Copyright 2012-2016, Bernhard Bliem
 WWW: <http://dbai.tuwien.ac.at/research/project/dflat/>.
 
 This file is part of D-FLAT.
@@ -29,19 +29,59 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef OUT_TEST_PATCH
 	#include <iostream>
 #endif
+
+namespace {
+	int compareRecursively(const ItemTreePtr& lhs, const ItemTreePtr& rhs);
+
+	// Three-way lexicographical comparison between children of two item tree nodes
+	template <typename It>
+	int compareChildrenRecursively(It first1, It last1, It first2, It last2)
+	{
+		while(first1 != last1) {
+			if(first2 == last2)
+				return 1;
+			const int cmp = compareRecursively(*first1, *first2);
+			if(cmp != 0)
+				return cmp;
+			++first1;
+			++first2;
+		}
+		return first2 == last2 ? 0 : -1;
+	}
+
+	// Recursive three-way comparison between two item tree nodes
+	int compareRecursively(const ItemTreePtr& lhs, const ItemTreePtr& rhs)
+	{
+		const int nodeComparison = lhs->getNode()->compareCostInsensitive(*rhs->getNode());
+		if(nodeComparison != 0)
+			return nodeComparison;
+
+		const int childrenComparison = compareChildrenRecursively(lhs->getChildren().begin(), lhs->getChildren().end(), rhs->getChildren().begin(), rhs->getChildren().end());
+		if(childrenComparison != 0)
+			return childrenComparison;
+
+		if(lhs->costDifferenceSignIncrease(rhs))
+			return -1;
+		if(rhs->costDifferenceSignIncrease(lhs))
+			return 1;
+		return 0;
+	}
+}
+
 bool ItemTreePtrComparator::operator()(const ItemTreePtr& lhs, const ItemTreePtr& rhs)
 {
-	return lhs->getNode()->compareCostInsensitive(*rhs->getNode()) ||
+	return compareRecursively(lhs, rhs) < 0;
+	/*return lhs->getNode()->compareCostInsensitive(*rhs->getNode()) ||
 		(!rhs->getNode()->compareCostInsensitive(*lhs->getNode()) &&
 		 (std::lexicographical_compare(lhs->getChildren().begin(), lhs->getChildren().end(), rhs->getChildren().begin(), rhs->getChildren().end(), *this) ||
 		  (!std::lexicographical_compare(rhs->getChildren().begin(), rhs->getChildren().end(), lhs->getChildren().begin(), lhs->getChildren().end(), *this) &&
 		   (lhs->costDifferenceSignIncrease(rhs) ||
 		  (!rhs->costDifferenceSignIncrease(lhs) &&
 		  (lhs->getNode()->getContent() < rhs->getNode()->getContent())
-		  )))));
+		  )))));*/
 }
 
-ItemTree::Children::const_iterator ItemTree::addChildAndMerge(ChildPtr&& subtree)
+void ItemTree::addChildAndMerge(ChildPtr&& subtree)
 {
 	assert(subtree);
 	assert(subtree->getNode()->getParent() == nullptr);
@@ -58,9 +98,25 @@ ItemTree::Children::const_iterator ItemTree::addChildAndMerge(ChildPtr&& subtree
 
 		// Unify subtree with origChild
 		origChild->merge(std::move(*subtree));
-		return children.end();
 	}
 	node->addWeakChild((*result.first)->getNode());
+}
+
+ItemTree::Children::const_iterator ItemTree::costChangeAfterAddChildAndMerge(ChildPtr&& subtree)
+{
+	assert(subtree);
+	assert(subtree->getNode()->getParent() == nullptr);
+	subtree->getNode()->setParent(node.get());
+	std::pair<Children::iterator, bool> result = children.insert(std::move(subtree));
+
+	if(!result.second) {
+		assert(subtree);
+		const ItemTreePtr& origChild = *result.first;
+		const long oldCost = origChild->getNode()->getCost();
+		origChild->merge(std::move(*subtree));
+		if(origChild->getNode()->getCost() == oldCost)
+			return children.end();
+	}
 	return result.first;
 }
 
@@ -77,16 +133,7 @@ bool ItemTree::finalize(const Application& app, bool pruneUndef, bool pruneRejec
 
 	clearUnneededExtensionPointers(app);
 
-	prepareChildrenRandomAccess();
-
 	return true;
-}
-
-const ItemTree& ItemTree::getChild(size_t i) const
-{
-	assert(childrenVector.size() == children.size());
-	assert(i < childrenVector.size());
-	return *childrenVector[i];
 }
 
 void ItemTree::printExtensions(std::ostream& os, unsigned int maxDepth, bool printCount, bool root, bool lastChild, const std::string& indent, const ExtensionIterator* parent) const
@@ -382,17 +429,6 @@ void ItemTree::merge(ItemTree&& other)
 		assert(it != other.children.end());
 		subtree->merge(std::move(**it));
 		++it;
-	}
-}
-
-void ItemTree::prepareChildrenRandomAccess()
-{
-	// Fill children vector for random access to children
-	assert(childrenVector.empty());
-	childrenVector.reserve(children.size());
-	for(const auto& child : children) {
-		childrenVector.push_back(child.get());
-		child->prepareChildrenRandomAccess();
 	}
 }
 

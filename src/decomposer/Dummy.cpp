@@ -1,5 +1,5 @@
 /*{{{
-Copyright 2012-2014, Bernhard Bliem
+Copyright 2012-2016, Bernhard Bliem
 WWW: <http://dbai.tuwien.ac.at/research/project/dflat/>.
 
 This file is part of D-FLAT.
@@ -30,11 +30,16 @@ Dummy::Dummy(Application& app, bool newDefault)
 {
 }
 
-DecompositionPtr Dummy::decompose(const Hypergraph& instance) const
+DecompositionPtr Dummy::decompose(const Instance& instance) const
 {
-	DecompositionPtr result(new Decomposition(instance.getVertices(), app.getSolverFactory()));
+	// Create set of all vertices
+	DecompositionNode::Bag vertices;
+	for(const auto edgeFacts : instance.getEdgeFacts())
+		for(const auto& arguments : edgeFacts.second)
+			vertices.insert(arguments.begin(), arguments.end());
+
+	DecompositionPtr result(new Decomposition(vertices, app.getSolverFactory()));
 	result->setRoot();
-	app.getPrinter().decomposerResult(*result);
 	return result;
 }
 

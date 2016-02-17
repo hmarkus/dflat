@@ -1,5 +1,5 @@
 /*{{{
-Copyright 2012-2014, Bernhard Bliem
+Copyright 2012-2016, Bernhard Bliem
 WWW: <http://dbai.tuwien.ac.at/research/project/dflat/>.
 
 This file is part of D-FLAT.
@@ -33,7 +33,7 @@ bool isJoinable(const ItemTreeNode& left, const ItemTreeNode& right)
 		(left.getType() == ItemTreeNode::Type::UNDEFINED || right.getType() == ItemTreeNode::Type::UNDEFINED || left.getType() == right.getType());
 }
 
-ItemTreePtr join(unsigned int leftNodeIndex, const ItemTreePtr& left, unsigned int rightNodeIndex, const ItemTreePtr& right, bool setLeavesToAccept)
+ItemTreePtr join(unsigned int leftNodeIndex, const ItemTreePtr& left, unsigned int rightNodeIndex, const ItemTreePtr& right, bool setLeavesToAccept, bool optimize)
 {
 	assert(left);
 	assert(right);
@@ -48,11 +48,11 @@ ItemTreePtr join(unsigned int leftNodeIndex, const ItemTreePtr& left, unsigned i
 	ItemTreeNode::Items items = left->getNode()->getItems();
 	ItemTreeNode::Items auxItems;
 	// Unify auxiliary items
-	const auto auxL = left->getNode()->getAuxItems();
-	const auto auxR = right->getNode()->getAuxItems();
+	const auto& auxL = left->getNode()->getAuxItems();
+	const auto& auxR = right->getNode()->getAuxItems();
 	std::set_union(auxL.begin(), auxL.end(), auxR.begin(), auxR.end(), std::inserter(auxItems, auxItems.end()));
 
-	ItemTreeNode::ExtensionPointers extensionPointers = {{{leftNodeIndex, left->getNode()}, {rightNodeIndex, right->getNode()}}};
+	ItemTreeNode::ExtensionPointers extensionPointers = {{left->getNode(), right->getNode()}};
 	const bool leaves = left->getChildren().empty() && right->getChildren().empty();
 	ItemTreeNode::Type type = left->getNode()->getType();
 	if(type == ItemTreeNode::Type::UNDEFINED) {
@@ -62,29 +62,31 @@ ItemTreePtr join(unsigned int leftNodeIndex, const ItemTreePtr& left, unsigned i
 	}
 	result.reset(new ItemTree(ItemTree::Node(new ItemTreeNode(std::move(items), std::move(auxItems), std::move(extensionPointers), type))));
 	// Set (initial) cost of this node
-	if(leaves) {
-		result->getNode()->setCost(left->getNode()->getCost() - left->getNode()->getCurrentCost() + right->getNode()->getCost());
-		assert(left->getNode()->getCurrentCost() == right->getNode()->getCurrentCost());
-		result->getNode()->setCurrentCost(left->getNode()->getCurrentCost());
-	} else {
-		assert(left->getNode()->getCurrentCost() == right->getNode()->getCurrentCost() && left->getNode()->getCurrentCost() == 0);
-		switch(type) {
-			case ItemTreeNode::Type::OR:
-				// Set cost to "infinity"
-				result->getNode()->setCost(std::numeric_limits<decltype(result->getNode()->getCost())>::max());
-				break;
+	if(optimize) {
+		if(leaves) {
+			result->getNode()->setCost(left->getNode()->getCost() - left->getNode()->getCurrentCost() + right->getNode()->getCost());
+			assert(left->getNode()->getCurrentCost() == right->getNode()->getCurrentCost());
+			result->getNode()->setCurrentCost(left->getNode()->getCurrentCost());
+		} else {
+			assert(left->getNode()->getCurrentCost() == right->getNode()->getCurrentCost() && left->getNode()->getCurrentCost() == 0);
+			switch(type) {
+				case ItemTreeNode::Type::OR:
+					// Set cost to "infinity"
+					result->getNode()->setCost(std::numeric_limits<decltype(result->getNode()->getCost())>::max());
+					break;
 
-			case ItemTreeNode::Type::AND:
-				// Set cost to minus "infinity"
-				result->getNode()->setCost(std::numeric_limits<decltype(result->getNode()->getCost())>::min());
-				break;
+				case ItemTreeNode::Type::AND:
+					// Set cost to minus "infinity"
+					result->getNode()->setCost(std::numeric_limits<decltype(result->getNode()->getCost())>::min());
+					break;
 
-			case ItemTreeNode::Type::UNDEFINED:
-				break;
+				case ItemTreeNode::Type::UNDEFINED:
+					break;
 
-			default:
-				assert(false);
-				break;
+				default:
+					assert(false);
+					break;
+			}
 		}
 	}
 
@@ -92,15 +94,16 @@ ItemTreePtr join(unsigned int leftNodeIndex, const ItemTreePtr& left, unsigned i
 	auto lit = left->getChildren().begin();
 	auto rit = right->getChildren().begin();
 	while(lit != left->getChildren().end() && rit != right->getChildren().end()) {
-		ItemTreePtr childResult = join(leftNodeIndex, *lit, rightNodeIndex, *rit, setLeavesToAccept);
+		ItemTreePtr childResult = join(leftNodeIndex, *lit, rightNodeIndex, *rit, setLeavesToAccept, optimize);
 		if(childResult) {
 			// lit and rit match
 			// Remember position of rit. We will later advance rit until is doesn't match with lit anymore.
 			auto mark = rit;
+join_lit_with_all_matches:
+			// Join lit will all partners starting at rit
 			do {
-				// Join lit will all partners starting at rit
-				do {
-					// Update cost
+				// Update cost
+				if(optimize) {
 					switch(type) {
 						case ItemTreeNode::Type::OR:
 							result->getNode()->setCost(std::min(result->getNode()->getCost(), childResult->getNode()->getCost()));
@@ -117,25 +120,25 @@ ItemTreePtr join(unsigned int leftNodeIndex, const ItemTreePtr& left, unsigned i
 							assert(false);
 							break;
 					}
+				}
 
-					result->addChildAndMerge(std::move(childResult));
-					++rit;
-					if(rit == right->getChildren().end())
-						break;
-					childResult = join(leftNodeIndex, *lit, rightNodeIndex, *rit, setLeavesToAccept);
-				} while(childResult);
-
-				// lit and rit don't match anymore (or rit is past the end)
-				// Advance lit. If it joins with mark, reset rit to mark.
-				++lit;
-				if(lit == left->getChildren().end())
+				result->addChildAndMerge(std::move(childResult));
+				++rit;
+				if(rit == right->getChildren().end())
 					break;
-				childResult = join(leftNodeIndex, *lit, rightNodeIndex, *mark, setLeavesToAccept);
+				childResult = join(leftNodeIndex, *lit, rightNodeIndex, *rit, setLeavesToAccept, optimize);
+			} while(childResult);
+
+			// lit and rit don't match anymore (or rit is past the end)
+			// Advance lit. If it joins with mark, reset rit to mark.
+			++lit;
+			if(lit != left->getChildren().end()) {
+				childResult = join(leftNodeIndex, *lit, rightNodeIndex, *mark, setLeavesToAccept, optimize);
 				if(childResult) {
 					rit = mark;
-					continue;
+					goto join_lit_with_all_matches;
 				}
-			} while(false);
+			}
 		}
 		else {
 			// lit and rit don't match
@@ -182,7 +185,7 @@ ItemTreePtr Solver::compute()
 		ItemTreePtr itree = (*it)->getSolver().compute();
 		if(!itree)
 			return ItemTreePtr();
-		result = join(leftChildIndex, result, (*it)->getNode().getGlobalId(), itree, setLeavesToAccept);
+		result = join(leftChildIndex, result, (*it)->getNode().getGlobalId(), itree, setLeavesToAccept, !app.isOptimizationDisabled());
 		leftChildIndex = (*it)->getNode().getGlobalId();
 	}
 

@@ -22,7 +22,7 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 #include <cassert>
 #include "Solver.h"
-#include "../asp/Solver.h"
+#include "../clasp/Solver.h"
 
 #include <sstream>
 
@@ -38,12 +38,13 @@ using namespace solver::layered;
 namespace solver { namespace layered {
 
 Solver::Solver(const Decomposition& decomposition, const Application& app, const std::vector<std::string>& encodingFiles, bool max)
-	: solver::asp::Solver(decomposition, app, encodingFiles, true), maximize(max)
+	: solver::clasp::Solver(decomposition, app, encodingFiles, true), maximize(max)
 {
 }
 
 
-#define MAINTAIN_KILL_FLAG
+#define MAINTAIN_PSEUDO_FLAG
+#define PSEUDO_FLAG "pseudo"
 //#define DEBUG
 static int join = 0, total = 0, newguys = 0;
 
@@ -59,18 +60,18 @@ void Solver::removeExtToOldParent(ItemTreeNode& itree, unsigned int& i, mpz_clas
 	for (const auto &tpl : *itdel) 
 	{
 		found = true;
-		counts *= tpl.second->getCount();
+		counts *= tpl->getCount();
 #ifdef DEBUG
 		std::cout << "," << counts << std::endl;
 #endif
-		//itree.decreaseCounter(tpl.second->getCount());
+		//itree.decreaseCounter(tpl->getCount());
 		if (!single)
 		{
 			unsigned int cnt = 0;
 			for (auto itxf = itree.getExtensionPointers().begin(); itxf != itree.getExtensionPointers().end(); ++itxf)
 			{
 				for (const auto &tplx : *itxf) 
-					if (tplx.second == tpl.second)
+					if (tplx == tpl)
 					{
 						++cnt;
 						break;
@@ -81,9 +82,9 @@ void Solver::removeExtToOldParent(ItemTreeNode& itree, unsigned int& i, mpz_clas
 			if (cnt >= 2)
 				continue;
 		}
-		auto fnd = tpl.second->getExtPointers().find(decomposition.getNode().getGlobalId());
-		assert(fnd != tpl.second->getExtPointers().end());
-		if (fnd != tpl.second->getExtPointers().end()) 
+		auto fnd = tpl->getExtPointers().find(decomposition.getNode().getGlobalId());
+		assert(fnd != tpl->getExtPointers().end());
+		if (fnd != tpl->getExtPointers().end()) 
 		{
 			auto &l = fnd->second;
 			for (auto it = l.begin(); it != l.end(); ++it)
@@ -93,7 +94,7 @@ void Solver::removeExtToOldParent(ItemTreeNode& itree, unsigned int& i, mpz_clas
 					bool del = l.size() == 1;
 					l.erase(it);
 					if (del)
-						tpl.second->getExtPointers().erase(fnd);
+						tpl->getExtPointers().erase(fnd);
 					break;
 				}
 			}
@@ -125,7 +126,7 @@ ItemTreeNode* Solver::addNewParentNode(ItemTreeNode& itree, ItemTreeNode::Subset
 		//TODO: procedure
 		for (auto& xt : dumb->getExtensionPointers())
 			for (auto &mp : xt)
-				mp.second->addExtPointer(dumb.get(), decomposition.getNode().getGlobalId());
+				mp->addExtPointer(dumb.get(), decomposition.getNode().getGlobalId());
 
 		ItemTree* p = new ItemTree(std::move(dumb));
 		node = p->getNode().get();
@@ -151,17 +152,22 @@ ItemTreeNode* Solver::addNewParentNode(ItemTreeNode& itree, ItemTreeNode::Subset
 					const ItemTreeNode::ExtensionPointerTuple& extss = pt->getExtensionPointers()[q];
 					if (id == (unsigned int)-1)
 					{
+						unsigned int pos = 0;
 						for (const auto& tupl : extss)
-							if (tupl.second.get() == &itree)
+						{
+							if (tupl.get() == &itree)
 							{
-								id = tupl.first;
+								id = pos; //tupl.first;
 								//copied = true;
 								break;
 							}
+							++pos;
+						}
 					}
-					auto it = extss.find(id);
+					/*auto it = extss.find(id);
 					//if (copied || ((it = extss.find(id)) != extss.end() && it->second == &itree))
-					if (it != extss.end() && it->second.get() == &itree)
+					if (it != extss.end() && it->second.get() == &itree)*/
+					if (extss[id].get() == &itree)
 					{
 						//changed = true;
 						pt->getExtensionPointers().push_back(extss);
@@ -290,7 +296,7 @@ void Solver::insertCompressed(ItemTreeNode& itree, ItemTreeNode::SubsetNode* con
 				*/
 				//TODO procedure?
 				for (auto &mp : *ext)
-					mp.second->addExtPointer(found, decomposition.getNode().getGlobalId());
+					mp->addExtPointer(found, decomposition.getNode().getGlobalId());
 				
 				mpz_class counts;
 				removeExtToOldParent(itree, i, counts);
@@ -335,9 +341,9 @@ void Solver::freeAll(ItemTreeNode* node)
 		for (auto & ptr: tplkv)
 		{
 			//auto* p = ptr.second.get()->getContent();
-			ptr.second->setContent(nullptr);
+			ptr->setContent(nullptr);
 			//delete p;
-			ptr.second->getExtPointers().clear();
+			ptr->getExtPointers().clear();
 		}
 	}
 }
@@ -347,12 +353,14 @@ void Solver::compute2()
 	ItemTreeNode& itr = getNode();
 	for (const auto & chld : itr.getExtensionPointers())
 	{
+		unsigned int pos = 0;
 		for (const auto & tpl : chld)
 		{
-			auto* s = findDecompNode(tpl.first);
+			auto* s = findDecompNode(pos); //tpl.first);
 			assert(s);	
-			s->setNode(*tpl.second.get());
+			s->setNode(*tpl.get());
 			s->compute();
+			++pos;
 		}
 	}
 	
@@ -398,11 +406,11 @@ void Solver::compute2()
 							auto tplkv = ext->begin(), tplkv2 = ext->begin();
 							++tplkv2;
 								
-							freeAll(tplkv->second.get());
-							freeAll(tplkv2->second.get());
+							freeAll(tplkv->get());
+							freeAll(tplkv2->get());
 							
-							for (auto it = tplkv->second->getContent()->begin(); 
-									it != tplkv->second->getContent()->end(); ++it )	//go downward
+							for (auto it = (*tplkv)->getContent()->begin(); 
+									it != (*tplkv)->getContent()->end(); ++it )	//go downward
 							{
 								const auto *subs = it->first;
 								//look at the results
@@ -414,25 +422,28 @@ void Solver::compute2()
 									//the following shice can be done way more efficiently...
 									for (const auto& extis : succ->getExtensionPointers())
 									{
-										auto pos = extis.find(tplkv->first);
-										if (pos != extis.end() && pos->second.get() == subs)
+										/*auto pos = extis.find(tplkv->first);
+										if (pos != extis.end() && pos->second.get() == subs)*/
+										auto pos = extis[0];
+										if (pos.get() == subs)
 										{
-											auto pos2 = extis.find(tplkv2->first);
-											if (pos2 != extis.end())
+											/*auto pos2 = extis.find(tplkv2->first);
+											if (pos2 != extis.end())*/
+											auto pos2 = extis[1];
 											{
-												for (auto itx = tplkv2->second->getContent()->begin(); 
-													itx != tplkv2->second->getContent()->end(); ++itx )	//go downward
+												for (auto itx = (*tplkv2)->getContent()->begin(); 
+													itx != (*tplkv2)->getContent()->end(); ++itx )	//go downward
 												{
 													const auto *subs2 = itx->first;
-													if (pos2->second.get() == subs2)
+													if (pos2.get() == subs2)
 													{
 														bool d;
 														auto itins = content->insert(std::pair<const ItemTreeNode*, bool>(succ, d = itx->second || it->second)).first;
 														itins->second = itins->second || d;
 
 #ifdef DEBUG
-														nodeDebug(pos->second.get());
-														nodeDebug(pos2->second.get());
+														nodeDebug(pos.get());
+														nodeDebug(pos2.get());
 														std::cout << std::endl;
 #endif
 													}
@@ -460,9 +471,9 @@ void Solver::compute2()
 								content = new ItemTreeNode::SubsetNode();
 							for (auto& tplkv : *ext)	//goto ext pointers
 							{
-								freeAll(tplkv.second.get());
-								for (auto it = tplkv.second->getContent()->begin(); 
-									it != tplkv.second->getContent()->end(); ++it)	//go downward
+								freeAll(tplkv.get());
+								for (auto it = tplkv->getContent()->begin(); 
+									it != tplkv->getContent()->end(); ++it)	//go downward
 								{
 									const auto *subs = it->first;
 									//look at the results
@@ -510,10 +521,11 @@ void Solver::compute2()
 
 ::Solver* Solver::findDecompNode(unsigned int id)
 {
-	for (const auto & chld : decomposition.getChildren())
+	return &decomposition.getChildren()[id]->getSolver();
+	/*for (const auto & chld : decomposition.getChildren())
 		if (chld->getNode().getGlobalId() == id)
 			return &chld->getSolver();
-	return nullptr;
+	return nullptr;*/
 }
 
 void Solver::calculateExtendedPointers()
@@ -528,10 +540,12 @@ void Solver::calculateExtendedPointers()
 			
 			for (const auto& ext : itree.getExtensionPointers())
 			{
+				unsigned int pos = 0;
 				for (const auto &t : ext)
 				{
-					assert(findDecompNode(t.first));
-					t.second->addExtPointer(&itree, decomposition.getNode().getGlobalId());
+					assert(findDecompNode(pos)); //t.first));
+					t->addExtPointer(&itree, decomposition.getNode().getGlobalId());
+					++pos;
 				}
 			}
 		}
@@ -539,13 +553,15 @@ void Solver::calculateExtendedPointers()
 
 	for (const auto& ext : getNode().getExtensionPointers())
 	{
+		unsigned int pos = 0;
 		for (const auto &t : ext)
 		{
-			::Solver* slv = findDecompNode(t.first);
+			::Solver* slv = findDecompNode(pos); //t.first);
 			assert(slv);
 
-			slv->setNode(*t.second.get());
+			slv->setNode(*t.get());
 			slv->compute(); //calculateExtendedPointers();
+			++pos;
 		}
 	}
 
@@ -565,7 +581,7 @@ ItemTreePtr Solver::compute()
 		assert(Solver::superroot == nullptr);	//no one fakes root!
 		assert(Solver::mode == ESM_NONE);	//no one fakes root!
 		Solver::mode = Solver::SolverMode::ESM_COMPUTE1;
-		ret = this->solver::asp::Solver::compute();		//compute1
+		ret = this->solver::clasp::Solver::compute();		//compute1
 		//return ret;
 		if (ret)
 		{
@@ -588,8 +604,10 @@ ItemTreePtr Solver::compute()
 			{
 				auto &node = *(*it)->getNode().get();
 				bool found = false;
-#ifdef MAINTAIN_KILL_FLAG
-				if (node.getAuxItems().find("kill") != node.getAuxItems().end())
+#ifdef MAINTAIN_PSEUDO_FLAG
+				//std::string&& x = std::string(PSEUDO_FLAG);
+				String s(std::string(PSEUDO_FLAG));
+				if (node.getAuxItems().find(s) != node.getAuxItems().end())
 					found = true;
 #endif
 				if (!found && node.getContent() && node.getContent()->size() > 0)
@@ -631,7 +649,7 @@ ItemTreePtr Solver::compute()
 	else if (Solver::mode == Solver::ESM_COMPUTE2)		//compute2
 		this->compute2();
 	else if (Solver::mode == Solver::ESM_COMPUTE1)
-		ret = this->solver::asp::Solver::compute();		//compute1
+		ret = this->solver::clasp::Solver::compute();		//compute1
 	else
 		assert(false);
 	return ret;

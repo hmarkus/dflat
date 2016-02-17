@@ -20,11 +20,11 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 //}}}
-#include "../asp/Solver.h"
+#include "../clasp/Solver.h"
 
 namespace solver { namespace layered {
 
-class Solver : public solver::asp::Solver
+class Solver : public solver::clasp::Solver
 {
 
 	typedef enum { ESM_NONE, ESM_COMPUTE1, ESM_COMPUTE2, ESM_EXTPOINTERS } SolverMode;
@@ -51,4 +51,4 @@ protected:
 	bool maximize;
 };
 
-}} // namespace solver::asp
+}} // namespace solver::clasp

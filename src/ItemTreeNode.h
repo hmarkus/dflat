@@ -1,5 +1,5 @@
 /*{{{
-Copyright 2012-2014, Bernhard Bliem
+Copyright 2012-2016, Bernhard Bliem
 WWW: <http://dbai.tuwien.ac.at/research/project/dflat/>.
 
 This file is part of D-FLAT.
@@ -29,6 +29,9 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include <gmpxx.h>
 #include <unordered_map>
 
+#include "String.h"
+
+
 class ExtensionIterator;
 
 // IMPORTANT NOTE: Remember that when you change something here it might
@@ -39,9 +42,9 @@ class ExtensionIterator;
 class ItemTreeNode
 {
 public:
-	typedef std::set<std::string> Items; // We need the sortedness for, e.g., the default join.
+	typedef std::set<String> Items; // We need the sortedness for, e.g., the default join.
 	typedef std::shared_ptr<ItemTreeNode> ExtensionPointer;
-	typedef std::map<unsigned int, ExtensionPointer> ExtensionPointerTuple; // key: ID of the decomposition node at which value is located
+	typedef std::vector<ExtensionPointer> ExtensionPointerTuple;
 	typedef std::vector<ExtensionPointerTuple> ExtensionPointers;
 
 
@@ -95,8 +98,8 @@ public:
 	const Items& getAuxItems() const;
 	const Items& getOptItems() const;
 
-	const ExtensionPointers& getExtensionPointers() const;
-	void clearExtensionPointers();
+	const ExtensionPointers& getExtensionPointers() const { return extensionPointers; }
+	void clearExtensionPointers() { extensionPointers.clear(); }
 
 	//"copy" constructor
 	ItemTreeNode(const ItemTreeNode& rhs, SubsetNode* content, ExtensionPointerTuple& pt);
@@ -117,23 +120,24 @@ public:
 	inline void decreaseCounter(mpz_class& nr) { count -= nr; }
 	inline void increaseCounter(mpz_class& nr) { count += nr; }
 		
-	const ItemTreeNode* getParent() const;
+	
+	const ItemTreeNode* getParent() const { return parent; }
 	void setParent(const ItemTreeNode*);
 
-	const mpz_class& getCount() const;
+	const mpz_class& getCount() const { return count; }
 
-	long getCost() const;
+	long getCost() const { return cost; }
 	// Throws a runtime_error if this is a REJECT node.
 	void setCost(long cost);
 
-	long getCurrentCost() const;
+	long getCurrentCost() const { return currentCost; }
 	void setCurrentCost(long currentCost);
 
-	Type getType() const;
+	Type getType() const { return type; }
 
-	bool getHasAcceptingChild() const;
+	bool getHasAcceptingChild() const { return hasAcceptingChild; }
 	void setHasAcceptingChild();
-	bool getHasRejectingChild() const;
+	bool getHasRejectingChild() const { return hasRejectingChild; }
 	void setHasRejectingChild();
 
 	// Calculate the number of extensions of this node given an iterator pointing to an extension of this node's parent.
@@ -147,9 +151,13 @@ public:
 	// "other" will subsequently be thrown away and only "this" will be retained.
 	void merge(ItemTreeNode&& other);
 
-	// Returns true if this is "smaller" than other, without considering costs.
+	// Returns a negative/positive integer if this is "less"/"greater" than other, without considering costs.
+	// Returns zero if this is equal to other, without considering costs.
 	// Only considers items, type, hasAcceptingChild, hasRejectingChild and auxItems.
-	bool compareCostInsensitive(const ItemTreeNode& other) const;
+	int compareCostInsensitive(const ItemTreeNode& other) const;
+
+	// Materialize just one extension
+	Items firstExtension() const;
 
 	// Print this node (no newlines)
 	friend std::ostream& operator<<(std::ostream& os, const ItemTreeNode& node);

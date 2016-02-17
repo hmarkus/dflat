@@ -1,5 +1,5 @@
 /*{{{
-Copyright 2012-2014, Bernhard Bliem
+Copyright 2012-2016, Bernhard Bliem
 WWW: <http://dbai.tuwien.ac.at/research/project/dflat/>.
 
 This file is part of D-FLAT.
@@ -20,13 +20,14 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 //}}}
 #include <cassert>
 #include <memory>
+#include <limits>
 
 #include "ItemTreeNode.h"
 #include "ExtensionIterator.h"
 
 #include <iostream>
 
-void ItemTreeNode::refreshCount(){
+void ItemTreeNode::refreshCount() {
 if(this->extensionPointers.empty())
 		count = 1;
 	else {
@@ -34,9 +35,26 @@ if(this->extensionPointers.empty())
 		for(const ExtensionPointerTuple& tuple : this->extensionPointers) {
 			mpz_class product = 1;
 			for(const auto& predecessor : tuple)
-				product *= predecessor.second->getCount();
+				product *= predecessor->getCount();
 			count += product;
 		}
+	}
+}
+
+
+namespace {
+	// Returns a negative integer if lhs < rhs, a positive integer if rhs > lhs, 0 if lhs == rhs
+	int compareSets(const ItemTreeNode::Items& lhs, const ItemTreeNode::Items& rhs)
+	{
+		const size_t smallestSize = std::min(lhs.size(), rhs.size());
+		size_t i = 0;
+		for(auto it1 = lhs.begin(), it2 = rhs.begin(); i < smallestSize; ++it1, ++it2, ++i) {
+			if(*it1 < *it2)
+				return -1;
+			else if(*it1 > *it2)
+				return 1;
+		}
+		return lhs.size() - rhs.size();
 	}
 }
 
@@ -81,22 +99,22 @@ ItemTreeNode::ItemTreeNode(Items&& items, Items&& auxItems, ExtensionPointers&& 
 	for(const ExtensionPointerTuple& tuple : this->extensionPointers) {
 		mpz_class product = 1;
 		for(const auto& predecessor : tuple)
-			product *= predecessor.second->getCount();
+			product *= predecessor->getCount();
 		count += product;
 	}
 
 #ifndef DISABLE_CHECKS
 	for(const ExtensionPointerTuple& tuple : this->extensionPointers)
 		for(const auto& predecessor : tuple)
-			if(predecessor.second->type != Type::UNDEFINED && type != predecessor.second->type)
+			if(predecessor->type != Type::UNDEFINED && type != predecessor->type)
 				throw std::runtime_error("Type of extended item tree node not retained");
 #endif
 
 	// Retain the information about accepting / rejecting children
 	for(const ExtensionPointerTuple& tuple : this->extensionPointers) {
 		for(const auto& predecessor : tuple) {
-			hasAcceptingChild = hasAcceptingChild || predecessor.second->hasAcceptingChild;
-			hasRejectingChild = hasRejectingChild || predecessor.second->hasRejectingChild;
+			hasAcceptingChild = hasAcceptingChild || predecessor->hasAcceptingChild;
+			hasRejectingChild = hasRejectingChild || predecessor->hasRejectingChild;
 		}
 	}
 
@@ -145,21 +163,6 @@ const ItemTreeNode::Items& ItemTreeNode::getAuxItems() const
 	return res->auxItems;
 }
 
-const ItemTreeNode::ExtensionPointers& ItemTreeNode::getExtensionPointers() const
-{
-	return extensionPointers;
-}
-
-void ItemTreeNode::clearExtensionPointers()
-{
-	extensionPointers.clear();
-}
-
-const ItemTreeNode* ItemTreeNode::getParent() const
-{
-	return parent;
-}
-
 void ItemTreeNode::setParent(const ItemTreeNode* parent)
 {
 	this->parent = parent;
@@ -175,16 +178,6 @@ void ItemTreeNode::addWeakChild(const std::shared_ptr<ItemTreeNode>& child)
 	weakChildren.emplace_back(child);
 }
 
-const mpz_class& ItemTreeNode::getCount() const
-{
-	return count;
-}
-
-long ItemTreeNode::getCost() const
-{
-	return cost;
-}
-
 void ItemTreeNode::setCost(long cost)
 {
 #ifndef DISABLE_CHECKS
@@ -194,34 +187,14 @@ void ItemTreeNode::setCost(long cost)
 	this->cost = cost;
 }
 
-long ItemTreeNode::getCurrentCost() const
-{
-	return currentCost;
-}
-
 void ItemTreeNode::setCurrentCost(long currentCost)
 {
 	this->currentCost = currentCost;
 }
 
-ItemTreeNode::Type ItemTreeNode::getType() const
-{
-	return type;
-}
-
-bool ItemTreeNode::getHasAcceptingChild() const
-{
-	return hasAcceptingChild;
-}
-
 void ItemTreeNode::setHasAcceptingChild()
 {
 	hasAcceptingChild = true;
-}
-
-bool ItemTreeNode::getHasRejectingChild() const
-{
-	return hasRejectingChild;
 }
 
 void ItemTreeNode::setHasRejectingChild()
@@ -246,7 +219,7 @@ mpz_class ItemTreeNode::countExtensions(const ExtensionIterator& parentIterator)
 				assert(parentIterator.getSubIterators().size() == tuple.size());
 				ExtensionIterator::SubIterators::const_iterator subIt = parentIterator.getSubIterators().begin();
 				for(const auto& predecessor : tuple) {
-					product *= predecessor.second->countExtensions(**subIt);
+					product *= predecessor->countExtensions(**subIt);
 					++subIt;
 				}
 				result += product;
@@ -270,10 +243,47 @@ void ItemTreeNode::merge(ItemTreeNode&& other)
 	count += other.count;
 }
 
-bool ItemTreeNode::compareCostInsensitive(const ItemTreeNode& other) const
+int ItemTreeNode::compareCostInsensitive(const ItemTreeNode& other) const
 {
-	// XXX Check that this is not less efficient than a long boolean expression
-	return std::tie(res->items, type, hasAcceptingChild, hasRejectingChild, res->auxItems) < std::tie(other.res->items, other.type, other.hasAcceptingChild, other.hasRejectingChild, other.res->auxItems);
+	int c = compareSets(res->items, other.res->items);
+	if(c != 0)
+		return c;
+
+	if(type < other.type)
+		return -1;
+	else if(type > other.type)
+		return 1;
+
+	if(hasAcceptingChild < other.hasAcceptingChild)
+		return -1;
+	else if(hasAcceptingChild > other.hasAcceptingChild)
+		return 1;
+
+	if(hasRejectingChild < other.hasRejectingChild)
+		return -1;
+	else if(hasRejectingChild > other.hasRejectingChild)
+		return 1;
+
+ 	c = compareSets(res->auxItems, other.res->items);
+	if(c != 0)
+		return c;
+	if (getContent() < getContent())
+		return -1; //compareSets(auxItems, other.auxItems);
+	else if (getContent() > getContent())
+		return -1;
+	return 0;
+}
+
+ItemTreeNode::Items ItemTreeNode::firstExtension() const
+{
+	Items result = res->items;
+	assert(extensionPointers.size() > 0);
+	ExtensionPointerTuple ept = extensionPointers.front();
+	for(const ExtensionPointer& ep : ept) {
+		const Items childResult = ep->firstExtension();
+		result.insert(childResult.begin(), childResult.end());
+	}
+	return result;
 }
 
 std::ostream& operator<<(std::ostream& os, const ItemTreeNode& node)
@@ -328,8 +338,12 @@ std::ostream& operator<<(std::ostream& os, const ItemTreeNode& node)
 //	os << "}, this: " << &node << ", parent: " << node.parent;
 
 	// Print cost
-	if(node.cost != 0)
-		os << " (cost: " << node.cost << "; current: " << node.getCurrentCost() << ')';
+	if(node.cost != 0) {
+		os << " (cost: " << node.cost;
+		if(node.getCurrentCost() != 0)
+			os << "; current: " << node.getCurrentCost();
+		os << ')';
+	}
 
 	return os;
 }

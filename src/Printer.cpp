@@ -1,5 +1,5 @@
 /*{{{
-Copyright 2012-2014, Bernhard Bliem
+Copyright 2012-2016, Bernhard Bliem
 WWW: <http://dbai.tuwien.ac.at/research/project/dflat/>.
 
 This file is part of D-FLAT.
@@ -101,6 +101,17 @@ class null_out_stream : public std::ostream {
 null_out_stream cnul;       // My null stream.
 
 #endif
+
+
+void Printer::provisionalSolution(const ItemTreeNode& solution)
+{
+	if(app.printProvisionalSolutions()) {
+		std::cout << "Provisional solution:" << std::endl;
+		for(const auto& item : solution.firstExtension())
+			std::cout << item << ' ';
+		std::cout << std::endl << "Cost: " << solution.getCost() << std::endl;
+	}
+}
 
 void Printer::result(const ItemTreePtr& rootItemTree)
 {

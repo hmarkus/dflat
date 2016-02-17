@@ -1,5 +1,5 @@
 /*{{{
-Copyright 2012-2014, Bernhard Bliem
+Copyright 2012-2016, Bernhard Bliem
 WWW: <http://dbai.tuwien.ac.at/research/project/dflat/>.
 
 This file is part of D-FLAT.
@@ -29,7 +29,7 @@ struct DecompositionTest : public ::testing::Test
 {
 	DecompositionTest()
 	{
-		addDecompositionChild(decomposition, {{"b", "c", "d"}});
+		addDecompositionChild(decomposition, {{{"b"}, {"c"}, {"d"}}});
 	}
 
 	Decomposition& addDecompositionChild(Decomposition& parent, DecompositionNode&& child)
@@ -40,26 +40,27 @@ struct DecompositionTest : public ::testing::Test
 
 	Application app{"test"};
 	solver::dummy::SolverFactory solverFactory{app};
-	Decomposition decomposition{DecompositionNode({"a", "b"}), solverFactory};
+	Decomposition decomposition{DecompositionNode({{"a"}, {"b"}}), solverFactory};
 };
 
 TEST_F(DecompositionTest, ReturnsDummySolver)
 {
-	EXPECT_EQ(typeid(solver::dummy::Solver), typeid(decomposition.getSolver()))
+	const Solver& result = decomposition.getSolver();
+	EXPECT_EQ(typeid(solver::dummy::Solver), typeid(result))
 		<< "decomposition.getSolver() should return an object of type solver::dummy::Solver";
 }
 
 TEST_F(DecompositionTest, ReportsCorrectWidth)
 {
 	EXPECT_EQ(2, decomposition.getWidth());
-	addDecompositionChild(decomposition, {{"e", "f", "g", "h"}});
+	addDecompositionChild(decomposition, {{{"e"}, {"f"}, {"g"}, {"h"}}});
 	EXPECT_EQ(3, decomposition.getWidth());
 }
 
 TEST_F(DecompositionTest, IdentifiesJoinNodes)
 {
 	EXPECT_FALSE(decomposition.isJoinNode());
-	const Hypergraph::Vertices bag = {"x", "y"};
+	const Hypergraph::Vertices bag = {{"x"}, {"y"}};
 	Decomposition& joinNode = addDecompositionChild(decomposition, bag);
 	addDecompositionChild(joinNode, bag);
 	addDecompositionChild(joinNode, bag);

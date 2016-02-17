@@ -1,5 +1,5 @@
 /*{{{
-Copyright 2012-2014, Bernhard Bliem
+Copyright 2012-2016, Bernhard Bliem
 WWW: <http://dbai.tuwien.ac.at/research/project/dflat/>.
 
 This file is part of D-FLAT.
@@ -19,121 +19,95 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 */
 //}}}
 #include "SolverFactory.h"
-#include "Solver.h"
+#include "LeafSolver.h"
+#include "AtomIntroductionSolver.h"
+#include "RuleIntroductionSolver.h"
+#include "AtomRemovalSolver.h"
+#include "RuleRemovalSolver.h"
 #include "../default_join/Solver.h"
-#include "../lazy_asp/Solver.h"
-#include "../layered/Solver.h"
-#include "../../Application.h"
 #include "../../Decomposition.h"
-
-#ifdef HAVE_WORDEXP_H
-#include <string>
-#include <fstream>
-#include <wordexp.h>
-#endif
+#include "../../Application.h"
 
 namespace solver { namespace asp {
 
-const std::string SolverFactory::OPTION_SECTION = "ASP solver";
-
 SolverFactory::SolverFactory(Application& app, bool newDefault)
-	: ::SolverFactory(app, "asp", "Answer Set Programming", newDefault)
-	, optEncodingFiles  ("p", "program",     "Use <program> as an ASP encoding for solving")
-	, optDefaultJoin    ("default-join",     "Use built-in implementation for join nodes")
-	, optLazy           ("lazy",             "Use lazy evaluation (experimental)")
-	, optTables         ("tables",           "Use table mode (for item trees of height at most 1)")
-	, optLayeredMin       ("tables-min",       "Minimize the items (forces the tables option)")
-	, optLayeredMax       ("tables-max",       "Maximize the items (forces the tables option)")
-
-#ifdef HAVE_WORDEXP_H
-	, optIgnoreModelines("ignore-modelines", "Do not scan the encoding files for modelines")
-#endif
+	: ::SolverFactory(app, "asp", "Answer Set Programming solver", newDefault)
 {
-	optEncodingFiles.addCondition(selected);
-	app.getOptionHandler().addOption(optEncodingFiles, OPTION_SECTION);
-
-	optDefaultJoin.addCondition(selected);
-	app.getOptionHandler().addOption(optDefaultJoin, OPTION_SECTION);
-
-	optLazy.addCondition(selected);
-	app.getOptionHandler().addOption(optLazy, OPTION_SECTION);
-
-	optTables.addCondition(selected);
-	app.getOptionHandler().addOption(optTables, OPTION_SECTION);
-
-	optLayeredMin.addCondition(selected);
-	app.getOptionHandler().addOption(optLayeredMin, OPTION_SECTION);
-	
-	optLayeredMax.addCondition(selected);
-	app.getOptionHandler().addOption(optLayeredMax, OPTION_SECTION);
-
-
-#ifdef HAVE_WORDEXP_H
-	optIgnoreModelines.addCondition(selected);
-	app.getOptionHandler().addOption(optIgnoreModelines, OPTION_SECTION);
-#endif
 }
 
 std::unique_ptr<::Solver> SolverFactory::newSolver(const Decomposition& decomposition) const
 {
-	if(optLazy.isUsed()) {
-		// FIXME this should not make --default-join ineffective, and it should not require table mode
-		if(optDefaultJoin.isUsed() || !optTables.isUsed())
-			throw std::runtime_error("Lazy evaluation currently requires table mode and not using the default join");
-		return std::unique_ptr<::Solver>(new lazy_asp::Solver(decomposition, app, optEncodingFiles.getValues()));
-	}
+	if(decomposition.isJoinNode())
+		return std::unique_ptr<::Solver>(new default_join::Solver(decomposition, app, false));
+
+	// Presuppose normalization
+	else if(decomposition.getChildren().size() > 1)
+		throw std::runtime_error("ASP solver requires normalization");
+
+	// Empty leaves
+	else if(decomposition.getChildren().empty())
+		return std::unique_ptr<::Solver>(new LeafSolver(decomposition, app));
+
+	// Presuppose empty root
+	else if(decomposition.isRoot() && decomposition.getNode().getBag().empty() == false)
+			throw std::runtime_error("ASP solver requires empty root");
+
+	// Exchange node
 	else {
-		if (optLayeredMax.isUsed() || optLayeredMin.isUsed())
-			return std::unique_ptr<::Solver>(new layered::Solver(decomposition, app, optEncodingFiles.getValues(), optLayeredMax.isUsed()));
-		else if(optDefaultJoin.isUsed() && decomposition.isJoinNode())
-			return std::unique_ptr<::Solver>(new default_join::Solver(decomposition, app, optTables.isUsed() && decomposition.isRoot()));
-		else
-			return std::unique_ptr<::Solver>(new asp::Solver(decomposition, app, optEncodingFiles.getValues(), optTables.isUsed()));
-	}
-}
+		assert(decomposition.getChildren().size() == 1);
+		Decomposition& childNode = **decomposition.getChildren().begin();
+		const DecompositionNode::Bag& bag = decomposition.getNode().getBag();
+		const DecompositionNode::Bag& childBag = childNode.getNode().getBag();
 
-void SolverFactory::select()
-{
-	::SolverFactory::select();
-	if(!optEncodingFiles.isUsed())
-		throw std::runtime_error("ASP solver requires at least one program to be specified");
-}
+		DecompositionNode::Bag bagDifference;
+		std::set_symmetric_difference(bag.begin(), bag.end(), childBag.begin(), childBag.end(), std::inserter(bagDifference, bagDifference.begin()));
+		if(bagDifference.size() != 1)
+			throw std::runtime_error("ASP solver requires normalization");
+		const String differentElement = *bagDifference.begin();
 
-#ifdef HAVE_WORDEXP_H
-void SolverFactory::notify()
-{
-	::SolverFactory::notify();
-
-	if(!optIgnoreModelines.isUsed()) {
-		// Scan for modelines in encoding files
-		for(const std::string& filename : optEncodingFiles.getValues()) {
-			// Avoid infinite recursions
-			if(std::find(modelineStack.begin(), modelineStack.end(), filename) != modelineStack.end())
-				continue;
-			modelineStack.push_back(filename);
-			std::string firstLine;
-			{
-				std::ifstream file(filename);
-				std::getline(file, firstLine);
-			}
-			static const std::string modelinePrefix = "%dflat: ";
-			if(firstLine.substr(0, modelinePrefix.size()) == modelinePrefix) {
-				wordexp_t p;
-				try {
-					if(wordexp(firstLine.substr(modelinePrefix.size()).c_str(), &p, 0) != 0)
-						throw std::runtime_error("Error parsing modeline");
-					app.getOptionHandler().parse(p.we_wordc, p.we_wordv);
-				}
-				catch(...) {
-					wordfree(&p);
-					throw;
-				}
-				wordfree(&p);
-			}
-			modelineStack.pop_back();
+		if(bag.size() > childBag.size()) {
+			// Introduction node
+			if(isAtom(differentElement))
+				return std::unique_ptr<::Solver>(new AtomIntroductionSolver(decomposition, app, differentElement));
+			else if(isRule(differentElement))
+				return std::unique_ptr<::Solver>(new RuleIntroductionSolver(decomposition, app, differentElement));
+			else
+				throw std::runtime_error("Introduced bag element is neither atom nor rule");
+		}
+		else {
+			// Removal node
+			if(isAtom(differentElement))
+				return std::unique_ptr<::Solver>(new AtomRemovalSolver(decomposition, app, differentElement));
+			else if(isRule(differentElement))
+				return std::unique_ptr<::Solver>(new RuleRemovalSolver(decomposition, app, differentElement));
+			else
+				throw std::runtime_error("Removed bag element is neither atom nor rule");
 		}
 	}
 }
-#endif
+
+bool SolverFactory::isAtom(String v) const
+{
+	// FIXME inefficient
+	for(const Instance::Edge& edge : app.getInstance().getEdgeFactsOfPredicate("atom")) {
+		if(edge.size() != 1)
+			throw std::runtime_error("Atom hyperedges must have arity 1");
+		if(edge.front() == v)
+			return true;
+	}
+	return false;
+}
+
+bool SolverFactory::isRule(String v) const
+{
+	// FIXME inefficient
+	for(const Instance::Edge& edge : app.getInstance().getEdgeFactsOfPredicate("rule")) {
+		if(edge.size() != 1)
+			throw std::runtime_error("Rule hyperedges must have arity 1");
+		if(edge.front() == v)
+			return true;
+	}
+	return false;
+}
 
 }} // namespace solver::asp

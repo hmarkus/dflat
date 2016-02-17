@@ -1,5 +1,5 @@
 /*{{{
-Copyright 2012-2014, Bernhard Bliem
+Copyright 2012-2016, Bernhard Bliem
 WWW: <http://dbai.tuwien.ac.at/research/project/dflat/>.
 
 This file is part of D-FLAT.
@@ -28,5 +28,10 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 Solver::Solver(const Decomposition& decomposition, const Application& app)
 	: decomposition(decomposition)
 	, app(app), node(nullptr)
+{
+}
+
+
+Solver::~Solver()
 {
 }
