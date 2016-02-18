@@ -354,6 +354,8 @@ void Solver::compute2()
 	for (const auto & chld : itr.getExtensionPointers())
 	{
 		unsigned int pos = 0;
+
+		if (decomposition.getChildren().size())
 		for (const auto & tpl : chld)
 		{
 			auto* s = findDecompNode(pos); //tpl.first);
@@ -362,6 +364,7 @@ void Solver::compute2()
 			s->compute();
 			++pos;
 		}
+		else std::cout << "WTF-MODE 3 @ " << decomposition.getNode().getGlobalId() << std::endl;
 	}
 	
 	for(const auto& weakChild : itr.getWeakChildren()) 
@@ -541,6 +544,7 @@ void Solver::calculateExtendedPointers()
 			std::shared_ptr<ItemTreeNode> sharedChild = weakChild.lock();
 			auto& itree = *sharedChild.get();
 			
+			if (decomposition.getChildren().size())
 			for (const auto& ext : itree.getExtensionPointers())
 			{
 				unsigned int pos = 0;
@@ -553,10 +557,12 @@ void Solver::calculateExtendedPointers()
 					++pos;
 				}
 			}
+			else
+				std::cout << "WTF-MODE 1 @ " << decomposition.getNode().getGlobalId() << std::endl;
 		}
 	}
 
-	//if (decomposition.getChildren().size())
+	if (decomposition.getChildren().size())
 	for (const auto& ext : getNode().getExtensionPointers())
 	{
 		unsigned int pos = 0;
@@ -574,6 +580,9 @@ void Solver::calculateExtendedPointers()
 			++pos;
 		}
 	}
+	else
+		std::cout << "WTF-MODE REK 2 @ " << decomposition.getNode().getGlobalId() << std::endl;
+
 
 }
 ItemTree* Solver::superroot = nullptr;
