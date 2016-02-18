@@ -264,7 +264,7 @@ int ItemTreeNode::compareCostInsensitive(const ItemTreeNode& other) const
 	else if(hasRejectingChild > other.hasRejectingChild)
 		return 1;
 
- 	c = compareSets(res->auxItems, other.res->items);
+ 	c = compareSets(res->auxItems, other.res->auxItems);
 	if(c != 0)
 		return c;
 	if (getContent() < getContent())
