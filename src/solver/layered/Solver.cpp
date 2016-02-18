@@ -521,7 +521,10 @@ void Solver::compute2()
 
 ::Solver* Solver::findDecompNode(unsigned int id)
 {
-	return &decomposition.getChildren()[id]->getSolver();
+	std::cout << "@" << decomposition.getNode().getGlobalId() << ":" << id << "," << decomposition.getChildren().size() << std::endl;
+	assert(id < decomposition.getChildren().size());
+
+	return &(decomposition.getChildren()[id]->getSolver());
 	/*for (const auto & chld : decomposition.getChildren())
 		if (chld->getNode().getGlobalId() == id)
 			return &chld->getSolver();
@@ -544,23 +547,30 @@ void Solver::calculateExtendedPointers()
 				for (const auto &t : ext)
 				{
 					assert(findDecompNode(pos)); //t.first));
+
 					t->addExtPointer(&itree, decomposition.getNode().getGlobalId());
+
 					++pos;
 				}
 			}
 		}
 	}
 
+	//if (decomposition.getChildren().size())
 	for (const auto& ext : getNode().getExtensionPointers())
 	{
 		unsigned int pos = 0;
 		for (const auto &t : ext)
 		{
+			//std::cout << t->getIdentifier()->items.size() << std::endl;
 			::Solver* slv = findDecompNode(pos); //t.first);
 			assert(slv);
 
+	std::cout << "{" << std::endl;
 			slv->setNode(*t.get());
 			slv->compute(); //calculateExtendedPointers();
+
+	std::cout << "}" << std::endl;
 			++pos;
 		}
 	}
