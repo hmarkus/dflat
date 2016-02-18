@@ -1,5 +1,6 @@
 # You probably need to adjust the *_dir variables before running "make"
-cxxflags_release="-DOUT_TEST_PATCH -DWITH_THREADS=0"
+#cxxflags_release="-DOUT_TEST_PATCH -DWITH_THREADS=0"
+cxxflags_release="-DWITH_THREADS=0"
 cxxflags_debug=$(cxxflags_release)
 cxxflags_gprof=$(cxxflags_debug)
 cxxflags_profiler=$(cxxflags_release)
@@ -9,7 +10,7 @@ cxxflags_static32=$(cxxflags_release32)
 
 gringo_dir=$(CURDIR)/../gringo-4.5.4-source
 gringo_lib=$(gringo_dir)/build/release/libgringo.a
-gringo_lib_debug=$(gringo_dir)/build/debug/libgringo.a
+gringo_lib_debug=$(gringo_dir)/build/release/libgringo.a
 gringo_lib_gprof=$(gringo_dir)/build/release/libgringo.a
 gringo_lib_profiler=$(gringo_dir)/build/release/libgringo.a
 gringo_lib_release32=$(gringo_dir)/build/release32/libgringo.a
@@ -18,7 +19,7 @@ gringo_lib_static32=$(gringo_dir)/build/static32/libgringo.a
 
 clasp_dir=$(CURDIR)/../clasp-3.1.4
 clasp_lib=$(clasp_dir)/build/release/libclasp/lib/libclasp.a
-clasp_lib_debug=$(clasp_dir)/build/debug/libclasp/lib/libclasp.a
+clasp_lib_debug=$(clasp_dir)/build/release/libclasp/lib/libclasp.a
 clasp_lib_gprof=$(clasp_dir)/build/gprof/libclasp/lib/libclasp.a
 clasp_lib_profiler=$(clasp_dir)/build/release/libclasp/lib/libclasp.a
 clasp_lib_release32=$(clasp_dir)/build/release_m32/libclasp/lib/libclasp.a
@@ -78,9 +79,9 @@ debug:
 	cmake ../../src \
 		$(cmake_extra_options) \
 		-DCMAKE_BUILD_TYPE=debug \
-		-DCMAKE_CXX_FLAGS:STRING=$(cxxflags_debug) \
-		-Dgringo_lib=$(gringo_lib_debug) \
-		-Dclasp_lib=$(clasp_lib_debug) \
+		-DCMAKE_CXX_FLAGS:STRING=$(cxxflags_release) \
+		-Dgringo_lib=$(gringo_lib) \
+		-Dclasp_lib=$(clasp_lib) \
 		-Dhtd_lib=$(htd_lib) \
 		-Dgringo_dir=$(gringo_dir) \
 		-Dclasp_dir=$(clasp_dir) \

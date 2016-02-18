@@ -116,7 +116,6 @@ ItemTreePtr Solver::compute()
 		rootItemSetName << 'n' << childItemTree.first;
 		asp_utils::declareItemTree(*childItemTreesInput, childItemTree.second.get(), tableMode, childItemTree.first, rootItemSetName.str());
 	}
-
 	app.getPrinter().solverInvocationInput(decomposition, childItemTreesInput->str());
 
 	// Input: Induced subinstance

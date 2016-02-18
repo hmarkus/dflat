@@ -76,5 +76,4 @@ protected:
 	// Called by NodeStackElement
 	virtual void enterNode(const Decomposition& decompositionNode);
 	virtual void leaveNode();
-
 };

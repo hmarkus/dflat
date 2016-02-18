@@ -270,7 +270,7 @@ int ItemTreeNode::compareCostInsensitive(const ItemTreeNode& other) const
 	if (getContent() < getContent())
 		return -1; //compareSets(auxItems, other.auxItems);
 	else if (getContent() > getContent())
-		return -1;
+		return 1;
 	return 0;
 }
 
@@ -321,7 +321,6 @@ std::ostream& operator<<(std::ostream& os, const ItemTreeNode& node)
 		os << item << ' ';
 	for(const auto& item : node.res->optItems)
 		os << item << ' ';
-
 
 //	os << "; extend: {";
 //	std::string tupleSep;

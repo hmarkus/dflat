@@ -135,7 +135,6 @@ bool ClaspCallback::onModel(const Clasp::Solver& s, const Clasp::Model& m)
 
 void ClaspCallback::prepare(const Clasp::Asp::LogicProgram& prg)
 {
-	
 	assert(prg.frozen());  // Ground program must be frozen
 	for(const auto& atom : gringoOutput.getOptItemAtomInfos())
 		optItemAtomInfos.emplace_back(OptItemAtomInfo(atom, prg));
@@ -151,4 +150,4 @@ void ClaspCallback::prepare(const Clasp::Asp::LogicProgram& prg)
 		costAtomInfos.emplace_back(CostAtomInfo(atom, prg));
 }
 
-}}} // namespace solver::asp::tables
+}}} // namespace solver::clasp::tables

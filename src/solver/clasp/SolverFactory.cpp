@@ -49,7 +49,6 @@ SolverFactory::SolverFactory(Application& app, bool newDefault)
 	, optTables         ("tables",           "Use table mode (for item trees of height at most 1)")
 	, optLayeredMin       ("tables-min",       "Minimize the items (forces the tables option)")
 	, optLayeredMax       ("tables-max",       "Maximize the items (forces the tables option)")
-
 #ifdef HAVE_WORDEXP_H
 	, optIgnoreModelines("ignore-modelines", "Do not scan the encoding files for modelines")
 #endif

@@ -341,7 +341,6 @@ void ItemTree::clearUnneededExtensionPointers(const Application& app, unsigned i
 		child->clearUnneededExtensionPointers(app, currentDepth);
 }
 
-
 bool ItemTree::costDifferenceSignIncrease(const ItemTreePtr& other) const
 {
 	assert(node->getItems() == other->node->getItems());

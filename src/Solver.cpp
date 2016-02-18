@@ -31,7 +31,6 @@ Solver::Solver(const Decomposition& decomposition, const Application& app)
 {
 }
 
-
 Solver::~Solver()
 {
 }

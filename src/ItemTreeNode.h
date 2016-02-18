@@ -31,13 +31,11 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "String.h"
 
-
 class ExtensionIterator;
 
 // IMPORTANT NOTE: Remember that when you change something here it might
 // require changing other classes like ItemTreePtrComparator (and
-// solver::asp::trees::UncompressedItemTreePtrComparator).
-
+// solver::clasp::trees::UncompressedItemTreePtrComparator).
 
 class ItemTreeNode
 {
@@ -47,9 +45,6 @@ public:
 	typedef std::vector<ExtensionPointer> ExtensionPointerTuple;
 	typedef std::vector<ExtensionPointerTuple> ExtensionPointers;
 
-
-
-	
 	typedef std::unordered_map<unsigned int, std::vector<ItemTreeNode *>> ExtendedPointers;
  	typedef std::vector<std::weak_ptr<ItemTreeNode>> WeakChildren;
 	
