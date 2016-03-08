@@ -102,7 +102,7 @@ SolverFactory::SolverFactory(Application& app, bool newDefault)
 
 std::unique_ptr<::Solver> SolverFactory::newSolver(const Decomposition& decomposition) const
 {
-	/*if(optLazy.isUsed()) {
+	if(optLazy.isUsed()) {
 		assert(optTables.isUsed() && condTables.isSatisfied());
 		assert(!optNoBinarySearch.isUsed() || optDefaultJoin.isUsed());
 		LazySolver::BranchAndBoundLevel bbLevel;
@@ -119,7 +119,7 @@ std::unique_ptr<::Solver> SolverFactory::newSolver(const Decomposition& decompos
 		else
 			return std::unique_ptr<::Solver>(new lazy_clasp::Solver(decomposition, app, optEncodingFiles.getValues(), optReground.isUsed(), bbLevel));
 	}
-	else*/ {
+	else {
 		if (optLayeredMax.isUsed() || optLayeredMin.isUsed())
 			return std::unique_ptr<::Solver>(new layered::Solver(decomposition, app, optEncodingFiles.getValues(), optLayeredMax.isUsed()));
 		else if(optDefaultJoin.isUsed() && decomposition.isJoinNode())

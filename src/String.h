@@ -30,8 +30,6 @@ class String
 public:
 	String(std::string&& content);
 
-	String() : id(0) { }
-
 	const std::string& operator*() const { return *strings[id]; }
 
 	bool operator<(const String& rhs) const { return id < rhs.id; }

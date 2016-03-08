@@ -22,13 +22,12 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include <stack>
 #include <htd/AddEmptyLeavesOperation.hpp>
 #include <htd/AddEmptyRootOperation.hpp>
-#include <htd/CompressionOperation.hpp>
+#include <htd/AddIdenticalJoinNodeParentOperation.hpp>
+#include <htd/JoinNodeReplacementOperation.hpp>
 #include <htd/NormalizationOperation.hpp>
 #include <htd/SemiNormalizationOperation.hpp>
 #include <htd/WeakNormalizationOperation.hpp>
 #include <htd/NamedHypergraph.hpp>
-#include <htd/PathDecompositionFactory.hpp>
-#include <htd/PathDecompositionAlgorithmFactory.hpp>
 #include <htd/TreeDecompositionFactory.hpp>
 #include <htd/TreeDecompositionAlgorithmFactory.hpp>
 #include <htd/MinDegreeOrderingAlgorithm.hpp>
@@ -40,7 +39,7 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include "../Decomposition.h"
 #include "../Application.h"
 
-typedef htd::NamedHypergraph<String, String> Hypergraph;
+typedef htd::NamedHypergraph<std::string, std::string> Hypergraph;
 
 namespace {
 	Hypergraph buildNamedHypergraph(const Instance& instance)
@@ -49,9 +48,9 @@ namespace {
 
 		for(auto fact : instance.getEdgeFacts()) {
 			for(const auto& e : fact.second) {
-				std::vector<String> vs;
+				std::vector<std::string> vs;
 				for(auto v : e)
-					vs.push_back(v);
+					vs.push_back(*v);
 				graph.addEdge(vs);
 			}
 		}
@@ -59,7 +58,7 @@ namespace {
 		return graph;
 	}
 
-	DecompositionPtr transformTd(htd::IMutableTreeDecomposition& decomposition, const Hypergraph& graph, bool addPostJoinNodes, const Application& app)
+	DecompositionPtr transformTd(htd::ITreeDecomposition& decomposition, const Hypergraph& graph, const Application& app)
 	{
 		if(decomposition.root() == htd::Vertex::UNKNOWN)
 			return DecompositionPtr{};
@@ -67,18 +66,11 @@ namespace {
 		auto htdRootBag = decomposition.bagContent(decomposition.root());
 		DecompositionNode::Bag rootBag;
 		for(auto v : htdRootBag)
-			rootBag.insert(graph.vertexName(v));
+			rootBag.emplace(std::string{graph.vertexName(v)});
 		DecompositionPtr result{new Decomposition{rootBag, app.getSolverFactory()}};
 
 		// If root is a join node, maybe add post join node
 		DecompositionPtr rootOrPostJoinNode = result;
-
-		if(addPostJoinNodes && decomposition.isJoinNode(decomposition.root())) {
-			DecompositionPtr postJoin{new Decomposition{rootBag, app.getSolverFactory()}};
-			postJoin->setPostJoinNode();
-			rootOrPostJoinNode = postJoin;
-			result->addChild(postJoin);
-		}
 
 		// Simulate recursion on htd's generated TD
 		std::stack<std::pair<htd::vertex_t, DecompositionPtr>> stack;
@@ -94,17 +86,10 @@ namespace {
 				const auto htdChildBag = decomposition.bagContent(htdChild);
 				DecompositionNode::Bag childBag;
 				for(auto v : htdChildBag)
-					childBag.insert(graph.vertexName(v));
+					childBag.emplace(std::string{graph.vertexName(v)});
 
 				// Add post join node if necessary
 				Decomposition* parentOrPostJoinNode = parent.get();
-
-				if(addPostJoinNodes && decomposition.isJoinNode(htdChild)) {
-					DecompositionPtr postJoin{new Decomposition{childBag, app.getSolverFactory()}};
-					postJoin->setPostJoinNode();
-					parentOrPostJoinNode = postJoin.get();
-					parent->addChild(std::move(postJoin));
-				}
 
 				DecompositionPtr child{new Decomposition{childBag, app.getSolverFactory()}};
 				parentOrPostJoinNode->addChild(child);
@@ -166,37 +151,36 @@ DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 	Hypergraph graph = buildNamedHypergraph(instance);
 
 	// Use htd to decompose
-	std::unique_ptr<htd::ITreeDecompositionAlgorithm> treeDecompositionAlgorithm;
+	std::unique_ptr<htd::ITreeDecompositionAlgorithm> treeDecompositionAlgorithm{htd::TreeDecompositionAlgorithmFactory::instance().getTreeDecompositionAlgorithm()};
+
+	// Add transformation to path decomposition
 	if(optPathDecomposition.isUsed())
-		treeDecompositionAlgorithm.reset(htd::PathDecompositionAlgorithmFactory::instance().getPathDecompositionAlgorithm());
-	else
-		treeDecompositionAlgorithm.reset(htd::TreeDecompositionAlgorithmFactory::instance().getTreeDecompositionAlgorithm());
-	std::unique_ptr<htd::ITreeDecomposition> decomposition{treeDecompositionAlgorithm->computeDecomposition(graph.internalGraph())};
-
-	// Make mutable decomposition (for normalization etc.)
-	std::unique_ptr<htd::IMutableTreeDecomposition> mutableDecomposition{htd::TreeDecompositionFactory::instance().getTreeDecomposition(*decomposition)};
-
-	// Compress
-	htd::CompressionOperation{}.apply(*mutableDecomposition);
+		treeDecompositionAlgorithm->addManipulationOperation(new htd::JoinNodeReplacementOperation());
 
 	// Add empty leaves
 	if(optNoEmptyLeaves.isUsed() == false)
-		htd::AddEmptyLeavesOperation{}.apply(*mutableDecomposition);
+		treeDecompositionAlgorithm->addManipulationOperation(new htd::AddEmptyLeavesOperation());
 
 	// Add empty root
 	if(optNoEmptyRoot.isUsed() == false)
-		htd::AddEmptyRootOperation{}.apply(*mutableDecomposition);
+		treeDecompositionAlgorithm->addManipulationOperation(new htd::AddEmptyRootOperation());
 
 	// Normalize
 	if(optNormalization.getValue() == "semi")
-		htd::SemiNormalizationOperation{}.apply(*mutableDecomposition);
+		treeDecompositionAlgorithm->addManipulationOperation(new htd::SemiNormalizationOperation());
 	else if(optNormalization.getValue() == "weak")
-		htd::WeakNormalizationOperation{}.apply(*mutableDecomposition);
+		treeDecompositionAlgorithm->addManipulationOperation(new htd::WeakNormalizationOperation());
 	else if(optNormalization.getValue() == "normalized")
-		htd::NormalizationOperation{}.apply(*mutableDecomposition);
+		treeDecompositionAlgorithm->addManipulationOperation(new htd::NormalizationOperation());
+
+	if(optPostJoin.isUsed())
+		treeDecompositionAlgorithm->addManipulationOperation(new htd::AddIdenticalJoinNodeParentOperation());
+
+	// Compute decomposition
+	std::unique_ptr<htd::ITreeDecomposition> decomposition{treeDecompositionAlgorithm->computeDecomposition(graph.internalGraph())};
 
 	// Transform htd's tree decomposition into our format
-	DecompositionPtr result = transformTd(*mutableDecomposition, graph, optPostJoin.isUsed(), app);
+	DecompositionPtr result = transformTd(*decomposition, graph, app);
 	result->setRoot();
 	return result;
 }

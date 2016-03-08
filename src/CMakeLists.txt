@@ -103,15 +103,15 @@ add_library(dflat-objects
 	solver/default_join/Solver.cpp
 	solver/dummy/Solver.cpp
 	solver/dummy/SolverFactory.cpp
-	#solver/lazy_clasp/GringoOutputProcessor.cpp
-	#solver/lazy_clasp/Solver.cpp
-	#solver/lazy_clasp/SolveIter.cpp
-	#solver/lazy_default_join/Solver.cpp
+	solver/lazy_clasp/GringoOutputProcessor.cpp
+	solver/lazy_clasp/Solver.cpp
+	solver/lazy_clasp/SolveIter.cpp
+	solver/lazy_default_join/Solver.cpp
 	Printer.cpp
 	printer/Quiet.cpp
 	printer/Progress.cpp
-	printer/DebugHumanReadable.cpp
-	printer/DebugMachineReadable.cpp
+	printer/Debug.cpp
+	printer/MachineReadable.cpp
 	printer/CountRows.cpp
 	asp_utils.cpp
 	asp_utils/GringoOutputProcessor.cpp

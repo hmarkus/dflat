@@ -544,9 +544,11 @@ void Solver::calculateExtendedPointers()
 			std::shared_ptr<ItemTreeNode> sharedChild = weakChild.lock();
 			auto& itree = *sharedChild.get();
 			
+			std::cout << "EXT-PTRS @ " << decomposition.getNode().getGlobalId() << ": " << itree.getExtensionPointers().size() << std::endl;
 			if (decomposition.getChildren().size())
 			for (const auto& ext : itree.getExtensionPointers())
 			{
+				std::cout << "EXT-PTR-SIZE @ " << decomposition.getNode().getGlobalId() << ": " << ext.size() << std::endl;
 				unsigned int pos = 0;
 				for (const auto &t : ext)
 				{
@@ -560,6 +562,7 @@ void Solver::calculateExtendedPointers()
 			else
 				std::cout << "WTF-MODE 1 @ " << decomposition.getNode().getGlobalId() << std::endl;
 		}
+
 	}
 
 	if (decomposition.getChildren().size())

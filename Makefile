@@ -10,7 +10,7 @@ cxxflags_static32=$(cxxflags_release32)
 
 gringo_dir=$(CURDIR)/../gringo-4.5.4-source
 gringo_lib=$(gringo_dir)/build/release/libgringo.a
-gringo_lib_debug=$(gringo_dir)/build/release/libgringo.a
+gringo_lib_debug=$(gringo_dir)/build/debug/libgringo.a
 gringo_lib_gprof=$(gringo_dir)/build/release/libgringo.a
 gringo_lib_profiler=$(gringo_dir)/build/release/libgringo.a
 gringo_lib_release32=$(gringo_dir)/build/release32/libgringo.a
@@ -19,7 +19,7 @@ gringo_lib_static32=$(gringo_dir)/build/static32/libgringo.a
 
 clasp_dir=$(CURDIR)/../clasp-3.1.4
 clasp_lib=$(clasp_dir)/build/release/libclasp/lib/libclasp.a
-clasp_lib_debug=$(clasp_dir)/build/release/libclasp/lib/libclasp.a
+clasp_lib_debug=$(clasp_dir)/build/debug/libclasp/lib/libclasp.a
 clasp_lib_gprof=$(clasp_dir)/build/gprof/libclasp/lib/libclasp.a
 clasp_lib_profiler=$(clasp_dir)/build/release/libclasp/lib/libclasp.a
 clasp_lib_release32=$(clasp_dir)/build/release_m32/libclasp/lib/libclasp.a
@@ -27,13 +27,13 @@ clasp_lib_static=$(clasp_dir)/build/static/libclasp/lib/libclasp.a
 clasp_lib_static32=$(clasp_dir)/build/static32/libclasp/lib/libclasp.a
 
 htd_dir=$(CURDIR)/../htd
-htd_lib=$(htd_dir)/build/lib/libhtd.a
-htd_lib_debug=$(htd_dir)/build/lib/libhtd.a
-htd_lib_gprof=$(htd_dir)/build/lib/libhtd.a
-htd_lib_profiler=$(htd_dir)/build/lib/libhtd.a
-htd_lib_release32=$(htd_dir)/build/lib/libhtd.a
-htd_lib_static=$(htd_dir)/build/lib/libhtd.a
-htd_lib_static32=$(htd_dir)/build/lib/libhtd.a
+htd_lib=$(htd_dir)/build/release/lib/libhtd.a
+htd_lib_debug=$(htd_dir)/build/debug/lib/libhtd.a
+htd_lib_gprof=$(htd_dir)/build/release/lib/libhtd.a
+htd_lib_profiler=$(htd_dir)/build/release/lib/libhtd.a
+htd_lib_release32=$(htd_dir)/build/release32/lib/libhtd.a
+htd_lib_static=$(htd_dir)/build/static/lib/libhtd.a
+htd_lib_static32=$(htd_dir)/build/static32/lib/libhtd.a
 
 gtest_dir=/usr/src/gtest
 
@@ -79,10 +79,10 @@ debug:
 	cmake ../../src \
 		$(cmake_extra_options) \
 		-DCMAKE_BUILD_TYPE=debug \
-		-DCMAKE_CXX_FLAGS:STRING=$(cxxflags_release) \
-		-Dgringo_lib=$(gringo_lib) \
-		-Dclasp_lib=$(clasp_lib) \
-		-Dhtd_lib=$(htd_lib) \
+		-DCMAKE_CXX_FLAGS:STRING=$(cxxflags_debug) \
+		-Dgringo_lib=$(gringo_lib_debug) \
+		-Dclasp_lib=$(clasp_lib_debug) \
+		-Dhtd_lib=$(htd_lib_debug) \
 		-Dgringo_dir=$(gringo_dir) \
 		-Dclasp_dir=$(clasp_dir) \
 		-Dhtd_dir=$(htd_dir) \
@@ -99,7 +99,7 @@ gprof:
 		-DCMAKE_CXX_FLAGS:STRING=$(cxxflags_gprof) \
 		-Dgringo_lib=$(gringo_lib_gprof) \
 		-Dclasp_lib=$(clasp_lib_gprof) \
-		-Dhtd_lib=$(htd_lib) \
+		-Dhtd_lib=$(htd_lib_gprof) \
 		-Dgringo_dir=$(gringo_dir) \
 		-Dclasp_dir=$(clasp_dir) \
 		-Dhtd_dir=$(htd_dir) \
@@ -116,7 +116,7 @@ profiler:
 		-DCMAKE_CXX_FLAGS:STRING=$(cxxflags_profiler) \
 		-Dgringo_lib=$(gringo_lib_profiler) \
 		-Dclasp_lib=$(clasp_lib_profiler) \
-		-Dhtd_lib=$(htd_lib) \
+		-Dhtd_lib=$(htd_lib_profiler) \
 		-Dgringo_dir=$(gringo_dir) \
 		-Dclasp_dir=$(clasp_dir) \
 		-Dhtd_dir=$(htd_dir) \
@@ -216,7 +216,7 @@ test:
 		-Dgtest_dir=$(gtest_dir) \
 		-Dgringo_lib=$(gringo_lib_debug) \
 		-Dclasp_lib=$(clasp_lib_debug) \
-		-Dhtd_lib=$(htd_lib) \
+		-Dhtd_lib=$(htd_lib_debug) \
 		-Dgringo_dir=$(gringo_dir) \
 		-Dclasp_dir=$(clasp_dir) \
 		-Dhtd_dir=$(htd_dir) \

@@ -17,22 +17,23 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+#pragma once
 //}}}
-#include <gtest/gtest.h>
+#include "../Printer.h"
 
-#include "DecompositionNode.h"
+namespace printer {
 
-TEST(DecompositionNode, ReturnsBag)
+class MachineReadable : public Printer
 {
-	DecompositionNode::Bag bag = {{"a"}, {"b"}};
-	EXPECT_EQ(bag, DecompositionNode(bag).getBag());
-}
+public:
+	MachineReadable(Application& app, bool newDefault = false);
 
-TEST(DecompositionNode, HasUniqueGlobalId)
-{
-	DecompositionNode n1 = {{}};
-	DecompositionNode n2 = {{}};
+	virtual void decomposerResult(const Decomposition& result) override;
+	virtual void solverInvocationInput(const Decomposition& decompositionNode, const std::string& input) override;
+	virtual void solverInvocationResult(const Decomposition& decompositionNode, const ItemTree* result) override;
+	virtual bool listensForSolverEvents() const override;
+	virtual void solverEvent(const std::string& msg) override;
+};
 
-	EXPECT_TRUE(n1.getGlobalId() != n2.getGlobalId())
-		<< "Global IDs of n1 and n2 are not different: " << n1.getGlobalId() << " and " << n2.getGlobalId();
-}
+} // namespace printer
