@@ -42,7 +42,7 @@ Solver::Solver(const Decomposition& decomposition, const Application& app, const
 {
 }
 
-
+#define EXT_TO_DECOMP_ID(_id)  (decomposition.getChildren().size() - 1 - _id)
 #define MAINTAIN_PSEUDO_FLAG
 #define PSEUDO_FLAG "pseudo"
 //#define DEBUG
@@ -164,10 +164,11 @@ ItemTreeNode* Solver::addNewParentNode(ItemTreeNode& itree, ItemTreeNode::Subset
 							++pos;
 						}
 					}
+					//id = EXT_TO_DECOMP_ID(id);
 					/*auto it = extss.find(id);
 					//if (copied || ((it = extss.find(id)) != extss.end() && it->second == &itree))
 					if (it != extss.end() && it->second.get() == &itree)*/
-					if (extss[id].get() == &itree)
+					if (id != (unsigned int)-1 && extss[id].get() == &itree)
 					{
 						//changed = true;
 						pt->getExtensionPointers().push_back(extss);
@@ -355,7 +356,7 @@ void Solver::compute2()
 	{
 		unsigned int pos = 0;
 
-		if (decomposition.getChildren().size())
+		//if (decomposition.getChildren().size())
 		for (const auto & tpl : chld)
 		{
 			auto* s = findDecompNode(pos); //tpl.first);
@@ -364,7 +365,7 @@ void Solver::compute2()
 			s->compute();
 			++pos;
 		}
-		else std::cout << "WTF-MODE 3 @ " << decomposition.getNode().getGlobalId() << std::endl;
+		/*else std::cout << "WTF-MODE 3 @ " << decomposition.getNode().getGlobalId() << std::endl;*/
 	}
 	
 	for(const auto& weakChild : itr.getWeakChildren()) 
@@ -524,9 +525,11 @@ void Solver::compute2()
 
 ::Solver* Solver::findDecompNode(unsigned int id)
 {
-	std::cout << "@" << decomposition.getNode().getGlobalId() << ":" << id << "," << decomposition.getChildren().size() << std::endl;
+//	std::cout << "@" << decomposition.getNode().getGlobalId() << ":" << id << "(" << decomposition.getNode() << ")" << "," << decomposition.getChildren().size() << std::endl;
 	assert(id < decomposition.getChildren().size());
-
+	//if (decomposition.getChildren().size() >= 2)
+	//FIX for accessing decomposition nodes in reverse order
+	id = EXT_TO_DECOMP_ID(id);
 	return &(decomposition.getChildren()[id]->getSolver());
 	/*for (const auto & chld : decomposition.getChildren())
 		if (chld->getNode().getGlobalId() == id)
@@ -544,11 +547,11 @@ void Solver::calculateExtendedPointers()
 			std::shared_ptr<ItemTreeNode> sharedChild = weakChild.lock();
 			auto& itree = *sharedChild.get();
 			
-			std::cout << "EXT-PTRS @ " << decomposition.getNode().getGlobalId() << ": " << itree.getExtensionPointers().size() << std::endl;
-			if (decomposition.getChildren().size())
+			//std::cout << "EXT-PTRS @ " << decomposition.getNode().getGlobalId() << ": " << itree.getExtensionPointers().size() << std::endl;
+			//if (decomposition.getChildren().size())
 			for (const auto& ext : itree.getExtensionPointers())
 			{
-				std::cout << "EXT-PTR-SIZE @ " << decomposition.getNode().getGlobalId() << ": " << ext.size() << std::endl;
+				//std::cout << "EXT-PTR-SIZE @ " << decomposition.getNode().getGlobalId() << ": " << ext.size() << std::endl;
 				unsigned int pos = 0;
 				for (const auto &t : ext)
 				{
@@ -559,32 +562,33 @@ void Solver::calculateExtendedPointers()
 					++pos;
 				}
 			}
-			else
-				std::cout << "WTF-MODE 1 @ " << decomposition.getNode().getGlobalId() << std::endl;
 		}
 
 	}
 
-	if (decomposition.getChildren().size())
+
+	//std::cout << "@@" << node << "," << decomposition.getNode().getGlobalId() << ":" << "(" << decomposition.getNode() << ")" << "," << decomposition.getChildren().size() << std::endl;
+	//if (decomposition.getChildren().size())
 	for (const auto& ext : getNode().getExtensionPointers())
 	{
 		unsigned int pos = 0;
 		for (const auto &t : ext)
 		{
 			//std::cout << t->getIdentifier()->items.size() << std::endl;
+
 			::Solver* slv = findDecompNode(pos); //t.first);
 			assert(slv);
 
-	std::cout << "{" << std::endl;
+	//std::cout << "{" << std::endl;
 			slv->setNode(*t.get());
 			slv->compute(); //calculateExtendedPointers();
 
-	std::cout << "}" << std::endl;
+	//std::cout << "}" << std::endl;
 			++pos;
 		}
 	}
-	else
-		std::cout << "WTF-MODE REK 2 @ " << decomposition.getNode().getGlobalId() << std::endl;
+	/*else
+		std::cout << "WTF-MODE REK 2 @ " << decomposition.getNode().getGlobalId() << std::endl;*/
 
 
 }
