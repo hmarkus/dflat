@@ -74,23 +74,23 @@ int Decomposition::getWidth() const
 
 void Decomposition::printGraphMl(std::ostream& out) const
 {
-	out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl
+	/*out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl
 		<< "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"" << std::endl
 		<< "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" << std::endl
 		<< "         xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns "
 		   "http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">" << std::endl
 		<< "  <key id=\"bag\" for=\"node\"/>" << std::endl
-		<< "  <graph edgedefault=\"undirected\">" << std::endl;
+		<< "  <graph edgedefault=\"undirected\">" << std::endl;*/
 
 	printGraphMlElements(out);
 
-	out << "  </graph>" << std::endl
-	    << "</graphml>" << std::endl;
+	/*out << "  </graph>" << std::endl
+	    << "</graphml>" << std::endl;*/
 }
 
 void Decomposition::printGraphMlElements(std::ostream& out) const
 {
-	out << "    <node id=\"n" << node.getGlobalId() << "\">" << std::endl;
+	/*out << "    <node id=\"n" << node.getGlobalId() << "\">" << std::endl;
 	out << "      <data key=\"bag\">";
 	std::string separator;
 	for(const auto& vertex : node.getBag()) {
@@ -104,5 +104,24 @@ void Decomposition::printGraphMlElements(std::ostream& out) const
 		child->printGraphMlElements(out);
 		out << "    <edge source=\"n" << node.getGlobalId() << "\""
 		                " target=\"n" << child->node.getGlobalId() << "\"/>" << std::endl;
-	}
+	}*/
+
+	out << "currentNode(" << node.getGlobalId() << ")." << std::endl;
+        /*if (getChildren().empty())
+                out << "initial." << std::endl;*/
+        if (isRoot())
+                out << "final." << std::endl;
+
+        for(const auto& vertex : node.getBag()) {
+                out << "current(" << vertex << ")." << std::endl;
+        }
+
+        for(const auto& child : children)
+        {
+                out << "childNode(" << child->getNode().getGlobalId() << ")." << std::endl;
+                for(const auto& v : child->getNode().getBag())
+                        out << "-introduced(" << v << ")." << std::endl;
+        }
+        for(const auto& child : children)
+                child->printGraphMlElements(out);
 }

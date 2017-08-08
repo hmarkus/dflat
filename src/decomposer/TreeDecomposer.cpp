@@ -21,6 +21,7 @@ along with D-FLAT.  If not, see <http://www.gnu.org/licenses/>.
 #include <cassert>
 #include <stack>
 #include <htd/main.hpp>
+#include <fstream>
 
 #include "../util.h"
 #include "TreeDecomposer.h"
@@ -207,6 +208,8 @@ TreeDecomposer::TreeDecomposer(Application& app, bool newDefault)
 	app.getOptionHandler().addOption(optPathDecomposition, OPTION_SECTION);
 }
 
+#define ORDERING_ONLY
+
 DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 {
 	std::unique_ptr<htd::LibraryInstance> htd(htd::createManagementInstance(htd::Id::FIRST));
@@ -220,6 +223,29 @@ DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 	}
 
 	Hypergraph graph = buildNamedHypergraph(*htd, instance);
+
+	/**/
+	#ifdef ORDERING_ONLY
+		if(optEliminationOrdering.getValue() == "min-degree")
+		{
+		htd::IOrderingAlgorithm* ordering = new htd::MaximumCardinalitySearchOrderingAlgorithm(htd.get());
+		htd::IVertexOrdering* od = ordering->computeOrdering(graph.internalGraph());
+		std::vector<htd::vertex_t> ordr = od->sequence();
+		delete od;
+		delete ordering;
+		//std::cout << ordr << std::endl;
+		std::ofstream outf;
+		outf.open(file);
+		unsigned int i = ordr.size();
+		for (const auto& v : ordr)
+			outf << "_heuristic(in(" << v << "),init," << i-- << ")." << std::endl;
+		outf.close();
+		return DecompositionPtr{};
+		}
+	#endif
+	/**/
+
+
 	std::unique_ptr<htd::TreeDecompositionOptimizationOperation> operation(new htd::TreeDecompositionOptimizationOperation(htd.get()));
 	operation->setManagementInstance(htd.get());
 
@@ -258,11 +284,11 @@ DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 		assert(optFitnessCriterion.getValue() == "width");
 		fitnessCriterion = FitnessCriterion::WIDTH;
 	}
-	FitnessFunction fitnessFunction(fitnessCriterion);
+	//FitnessFunction fitnessFunction(fitnessCriterion);
 
 	std::unique_ptr<htd::ITreeDecompositionAlgorithm> baseAlgorithm(htd->treeDecompositionAlgorithmFactory().createInstance());
 	baseAlgorithm->addManipulationOperation(operation.release());
-	htd::IterativeImprovementTreeDecompositionAlgorithm algorithm(htd.get(), baseAlgorithm.release(), fitnessFunction);
+	htd::IterativeImprovementTreeDecompositionAlgorithm algorithm(htd.get(), baseAlgorithm.release(), new FitnessFunction(fitnessCriterion));
 
 	int iterationCount = DEFAULT_ITERATION_COUNT;
 	if(optIterationCount.isUsed())

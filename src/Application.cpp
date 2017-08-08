@@ -161,8 +161,12 @@ int Application::run(int argc, const char* const* const argv)
 	}
 
 	// Decompose instance
+	decomposer->setFile(optGraphMlOut.getValue().c_str());
 	DecompositionPtr decomposition = decomposer->decompose(instance);
-	if(optGraphMlOut.isUsed()) {
+	FILE* fp = fopen(optGraphMlOut.getValue().c_str(), "r");
+	if (fp)
+		fclose(fp);
+	else if(optGraphMlOut.isUsed()) {
 		std::ofstream graphMlFile(optGraphMlOut.getValue().c_str());
 		decomposition->printGraphMl(graphMlFile);
 		if(!graphMlFile)

@@ -33,4 +33,9 @@ public:
 	virtual DecompositionPtr decompose(const Instance& instance) const = 0;
 
 	virtual void select() override;
+
+	inline void setFile(const char* const str) { this->file = str; }
+
+protected:
+	const char* file;
 };

@@ -171,7 +171,7 @@ bool LazySolver::loadNextChildRowCombination(long costBound)
 				// The child solver is now exhausted
 				// Remove it from nonExhaustedChildSolvers
 				// Set nextChildSolverToCall to the next one
-				nonExhaustedChildSolvers.erase(nextChildSolverToCall++);
+				//nonExhaustedChildSolvers.erase(nextChildSolverToCall++);
 
 				if(nonExhaustedChildSolvers.empty())
 					return false;

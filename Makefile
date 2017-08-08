@@ -7,7 +7,7 @@ cxxflags_release32="-DWITH_THREADS=0 -m32 -DNO_UNICODE"
 cxxflags_static=$(cxxflags_release)
 cxxflags_static32=$(cxxflags_release32)
 
-gringo_dir=$(CURDIR)/../gringo-4.5.4-source
+gringo_dir=/home/hecher/gringo-4.5.4-source
 gringo_lib=$(gringo_dir)/build/release/libgringo.a
 gringo_lib_debug=$(gringo_dir)/build/debug/libgringo.a
 gringo_lib_gprof=$(gringo_dir)/build/release/libgringo.a
@@ -16,7 +16,7 @@ gringo_lib_release32=$(gringo_dir)/build/release32/libgringo.a
 gringo_lib_static=$(gringo_dir)/build/static/libgringo.a
 gringo_lib_static32=$(gringo_dir)/build/static32/libgringo.a
 
-clasp_dir=$(CURDIR)/../clasp-3.1.4
+clasp_dir=/home/hecher/clasp-3.1.4
 clasp_lib=$(clasp_dir)/build/release/libclasp/lib/libclasp.a
 clasp_lib_debug=$(clasp_dir)/build/debug/libclasp/lib/libclasp.a
 clasp_lib_gprof=$(clasp_dir)/build/gprof/libclasp/lib/libclasp.a
@@ -25,7 +25,7 @@ clasp_lib_release32=$(clasp_dir)/build/release_m32/libclasp/lib/libclasp.a
 clasp_lib_static=$(clasp_dir)/build/static/libclasp/lib/libclasp.a
 clasp_lib_static32=$(clasp_dir)/build/static32/libclasp/lib/libclasp.a
 
-htd_dir=$(CURDIR)/../htd-1.0.1
+htd_dir=/files/hecher/htd
 htd_lib=$(htd_dir)/build/release/lib/libhtd.a
 htd_lib_debug=$(htd_dir)/build/debug/lib/libhtd.a
 htd_lib_gprof=$(htd_dir)/build/release/lib/libhtd.a
