@@ -228,7 +228,7 @@ DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 	#ifdef ORDERING_ONLY
 		if(optEliminationOrdering.getValue() == "min-degree")
 		{
-		htd::IOrderingAlgorithm* ordering = new htd::MaximumCardinalitySearchOrderingAlgorithm(htd.get());
+		htd::IOrderingAlgorithm* ordering = new htd::MinFillOrderingAlgorithm(htd.get()); // new htd::MaximumCardinalitySearchOrderingAlgorithm(htd.get());
 		htd::IVertexOrdering* od = ordering->computeOrdering(graph.internalGraph());
 		std::vector<htd::vertex_t> ordr = od->sequence();
 		delete od;
@@ -238,7 +238,7 @@ DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 		outf.open(file);
 		unsigned int i = ordr.size();
 		for (const auto& v : ordr)
-			outf << "_heuristic(in(" << v << "),init," << i-- << ")." << std::endl;
+			outf << "_heuristic(vertex(" << v << "),init," << i-- << ")." << std::endl;
 		outf.close();
 		return DecompositionPtr{};
 		}
