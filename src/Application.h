@@ -67,6 +67,9 @@ public:
 	// If the user did not specify a value, returns the greatest unsigned int.
 	unsigned int getMaterializationDepth() const;
 
+	const std::string& getHeurPred() const;
+	unsigned int getHeurMode() const;
+
 private:
 	static const std::string MODULE_SECTION;
 
@@ -87,5 +90,6 @@ private:
 	SolverFactory* solverFactory;
 	Printer* printer;
 
-	unsigned int depth;
+	unsigned int depth, heurMode;
+	std::string heurPred;
 };

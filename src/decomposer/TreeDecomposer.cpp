@@ -206,6 +206,9 @@ TreeDecomposer::TreeDecomposer(Application& app, bool newDefault)
 
 	optPathDecomposition.addCondition(selected);
 	app.getOptionHandler().addOption(optPathDecomposition, OPTION_SECTION);
+
+	heurMode = app.getHeurMode();
+	heurPred = app.getHeurPred();
 }
 
 #define ORDERING_ONLY
@@ -226,7 +229,7 @@ DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 
 	/**/
 	#ifdef ORDERING_ONLY
-		if(optEliminationOrdering.getValue() == "min-degree")
+		if(heurMode == 2) //optEliminationOrdering.getValue() == "min-degree")
 		{
 		htd::IOrderingAlgorithm* ordering = new htd::MinFillOrderingAlgorithm(htd.get()); // new htd::MaximumCardinalitySearchOrderingAlgorithm(htd.get());
 		htd::IVertexOrdering* od = ordering->computeOrdering(graph.internalGraph());
@@ -238,7 +241,7 @@ DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 		outf.open(file);
 		unsigned int i = ordr.size();
 		for (const auto& v : ordr)
-			outf << "_heuristic(vertex(" << v << "),init," << i-- << ")." << std::endl;
+			outf << "_heuristic(" << heurPred << "(" << v << "),init," << i-- << ")." << std::endl;
 		outf.close();
 		return DecompositionPtr{};
 		}

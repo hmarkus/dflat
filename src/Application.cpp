@@ -65,6 +65,7 @@ Application::Application(const std::string& binaryName)
 	, decomposer(0)
 	, solverFactory(0)
 	, depth(std::numeric_limits<unsigned int>::max())
+	, heurMode(0)
 {
 }
 
@@ -85,6 +86,12 @@ int Application::run(int argc, const char* const* const argv)
 
 	options::SingleValueOption optDepth("depth", "d", "Print only item sets of depth at most <d>");
 	opts.addOption(optDepth);
+
+	options::SingleValueOption optHeur("heurpred", "h", "Use heuristic predicate <h> to produce heuristic information");
+	opts.addOption(optHeur);
+
+	options::SingleValueOption optHeurMode("heurmode", "m", "Set heuristic mode <m>; m = 1: td, m = 2: variable ordering");
+	opts.addOption(optHeurMode);
 
 	options::MultiValueOption optEdge("e", "edge", "Predicate <edge> declares (hyper)edges");
 	opts.addOption(optEdge);
@@ -132,6 +139,12 @@ int Application::run(int argc, const char* const* const argv)
 
 		if(optDepth.isUsed())
 			depth = util::strToInt(optDepth.getValue(), "Invalid depth");
+
+		if(optHeurMode.isUsed())
+			heurMode = util::strToInt(optHeurMode.getValue(), "Invalid heuristic mode");
+
+		if(optHeur.isUsed())
+			heurPred = optHeur.getValue();
 
 		if(!optEdge.isUsed())
 			throw std::runtime_error("Option -e must be supplied at least once");
@@ -267,6 +280,16 @@ bool Application::printDecomposition() const
 bool Application::printProvisionalSolutions() const
 {
 	return optPrintProvisional.isUsed();
+}
+
+unsigned Application::getHeurMode() const
+{
+	return heurMode;
+}
+
+const std::string& Application::getHeurPred() const
+{
+	return heurPred;
 }
 
 unsigned int Application::getMaterializationDepth() const

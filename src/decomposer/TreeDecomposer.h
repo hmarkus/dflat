@@ -44,6 +44,9 @@ private:
 	options::Option            optNoEmptyLeaves;
 	options::Option            optPostJoin;
 	options::Option            optPathDecomposition;
+
+	unsigned heurMode;
+	std::string heurPred;
 };
 
 } // namespace decomposer
