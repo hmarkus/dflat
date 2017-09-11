@@ -207,14 +207,16 @@ TreeDecomposer::TreeDecomposer(Application& app, bool newDefault)
 	optPathDecomposition.addCondition(selected);
 	app.getOptionHandler().addOption(optPathDecomposition, OPTION_SECTION);
 
-	heurMode = app.getHeurMode();
-	heurPred = app.getHeurPred();
+	this->app_ = &app;
 }
 
 #define ORDERING_ONLY
 
 DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 {
+	//heurMode = app_->getHeurMode();
+	//heurPred = app_->getHeurPred();
+
 	std::unique_ptr<htd::LibraryInstance> htd(htd::createManagementInstance(htd::Id::FIRST));
 
 	// Which algorithm to use?
@@ -229,7 +231,7 @@ DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 
 	/**/
 	#ifdef ORDERING_ONLY
-		if(heurMode == 2) //optEliminationOrdering.getValue() == "min-degree")
+		if( app_->getHeurMode() == 2) //optEliminationOrdering.getValue() == "min-degree")
 		{
 		htd::IOrderingAlgorithm* ordering = new htd::MinFillOrderingAlgorithm(htd.get()); // new htd::MaximumCardinalitySearchOrderingAlgorithm(htd.get());
 		htd::IVertexOrdering* od = ordering->computeOrdering(graph.internalGraph());
@@ -241,7 +243,7 @@ DecompositionPtr TreeDecomposer::decompose(const Instance& instance) const
 		outf.open(file);
 		unsigned int i = ordr.size();
 		for (const auto& v : ordr)
-			outf << "_heuristic(" << heurPred << "(" << v << "),init," << i-- << ")." << std::endl;
+			outf << "_heuristic(" <<  app_->getHeurPred() /*heurPred*/ << "(" << v << "),init," << i-- << ")." << std::endl;
 		outf.close();
 		return DecompositionPtr{};
 		}

@@ -45,8 +45,10 @@ private:
 	options::Option            optPostJoin;
 	options::Option            optPathDecomposition;
 
-	unsigned heurMode;
-	std::string heurPred;
+	/*unsigned heurMode;
+	std::string heurPred;*/
+
+	Application* app_;
 };
 
 } // namespace decomposer

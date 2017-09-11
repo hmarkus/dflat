@@ -110,7 +110,7 @@ int Application::run(int argc, const char* const* const argv)
 	options::SingleValueOption optSeed("seed", "n", "Initialize random number generator with seed <n>");
 	opts.addOption(optSeed);
 
-	// Set up module selection options
+		// Set up module selection options
 	opts.addOption(optDecomposer, MODULE_SECTION);
 	decomposer::Dummy dummyDecomposer(*this);
 	decomposer::TreeDecomposer treeDecomposer(*this, true);
@@ -139,9 +139,14 @@ int Application::run(int argc, const char* const* const argv)
 
 		if(optDepth.isUsed())
 			depth = util::strToInt(optDepth.getValue(), "Invalid depth");
-
+			
 		if(optHeurMode.isUsed())
+		{
 			heurMode = util::strToInt(optHeurMode.getValue(), "Invalid heuristic mode");
+			std::cout << "used " << heurMode << std::endl;
+		}
+
+
 
 		if(optHeur.isUsed())
 			heurPred = optHeur.getValue();
@@ -284,6 +289,7 @@ bool Application::printProvisionalSolutions() const
 
 unsigned Application::getHeurMode() const
 {
+	std::cout << heurMode << std::endl;
 	return heurMode;
 }
 
